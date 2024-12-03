@@ -1,12 +1,10 @@
 add reason for delay in milestone table and return it in project tables fetch
 
-
-
 abb mujhe ek nyi api endpoint bana kar do jo return kare array of projects database
 
-
-
-task 
+task
 1.milestone index is not being returned in project detail
-2.milestone individual index is required to update it 
+2.milestone individual index is required to update it
 
+task
+1.officilName is not being push to the db and not being returned from the db

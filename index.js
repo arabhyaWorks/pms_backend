@@ -726,6 +726,126 @@ app.put("/api/updateMilestone/:id", async (req, res) => {
   }
 });
 
+app.post("/api/createInspection", async (req, res) => {
+  const {
+    projectId,
+    inspectionDate,
+    officialName,
+    officialEmail,
+    officialPhone,
+    officialDesignation,
+    officialDepartment,
+    InspectionType,
+    inspectionInstruction,
+    inspectionStatus,
+    inspectionReport,
+  } = req.body;
+
+  if (!projectId || !inspectionDate || !InspectionType || !inspectionStatus) {
+    return res.status(400).json({
+      error: "Missing required fields for inspection creation.",
+    });
+  }
+
+  try {
+    const connection = await db.promise();
+
+    await connection.query(
+      `INSERT INTO project_inspections (
+        project_id, inspection_date, inspection_type, inspection_instruction, 
+        inspection_status, inspection_report, official_name, official_email, 
+        official_phone, official_designation, official_department
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        projectId,
+        inspectionDate,
+        InspectionType,
+        inspectionInstruction || null,
+        inspectionStatus,
+        inspectionReport || null,
+        officialName || null,
+        officialEmail || null,
+        officialPhone || null,
+        officialDesignation || null,
+        officialDepartment || null,
+      ]
+    );
+
+    res.status(201).json({
+      message: "Inspection created successfully!",
+    });
+  } catch (error) {
+    console.error("Error creating inspection:", error.message);
+    res.status(500).json({ error: "Failed to create inspection." });
+  }
+});
+
+app.put("/api/updateInspection/:id", async (req, res) => {
+  const inspectionId = req.params.id;
+  const {
+    inspectionDate,
+    officialName,
+    officialEmail,
+    officialPhone,
+    officialDesignation,
+    officialDepartment,
+    InspectionType,
+    inspectionInstruction,
+    inspectionStatus,
+    inspectionReport,
+  } = req.body;
+
+  if (!inspectionId) {
+    return res.status(400).json({
+      error: "Inspection ID is required.",
+    });
+  }
+
+  try {
+    const connection = await db.promise();
+
+    const [result] = await connection.query(
+      `UPDATE project_inspections SET 
+        inspection_date = COALESCE(?, inspection_date),
+        inspection_type = COALESCE(?, inspection_type),
+        inspection_instruction = COALESCE(?, inspection_instruction),
+        inspection_status = COALESCE(?, inspection_status),
+        inspection_report = COALESCE(?, inspection_report),
+        official_name = COALESCE(?, official_name),
+        official_email = COALESCE(?, official_email),
+        official_phone = COALESCE(?, official_phone),
+        official_designation = COALESCE(?, official_designation),
+        official_department = COALESCE(?, official_department)
+      WHERE id = ?`,
+      [
+        inspectionDate || null,
+        InspectionType || null,
+        inspectionInstruction || null,
+        inspectionStatus || null,
+        inspectionReport || null,
+        officialName || null,
+        officialEmail || null,
+        officialPhone || null,
+        officialDesignation || null,
+        officialDepartment || null,
+        inspectionId,
+      ]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        error: "Inspection not found.",
+      });
+    }
+
+    res.json({
+      message: "Inspection updated successfully!",
+    });
+  } catch (error) {
+    console.error("Error updating inspection:", error.message);
+    res.status(500).json({ error: "Failed to update inspection." });
+  }
+});
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

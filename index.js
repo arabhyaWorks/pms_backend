@@ -614,6 +614,118 @@ app.post("/api/projects", async (req, res) => {
   }
 });
 
+app.post("/api/createMilestone", async (req, res) => {
+  const {
+    projectId,
+    milestoneName,
+    milestoneFromDate,
+    milestoneCompletionDate,
+    milestoneActualCompletionDate,
+    milestoneStatus,
+    milestoneDescription,
+    milestoneProgress,
+  } = req.body;
+
+  if (
+    !projectId ||
+    !milestoneName ||
+    !milestoneFromDate ||
+    !milestoneCompletionDate ||
+    !milestoneStatus ||
+    milestoneProgress === undefined
+  ) {
+    return res.status(400).json({
+      error: "Missing required fields for milestone creation.",
+    });
+  }
+
+  try {
+    const connection = await db.promise();
+
+    await connection.query(
+      `INSERT INTO milestones (
+        project_id, milestone_name, milestone_from_date, milestone_completion_date, 
+        milestone_actual_completion_date, milestone_status, milestone_description, milestone_progress
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        projectId,
+        milestoneName,
+        milestoneFromDate,
+        milestoneCompletionDate,
+        milestoneActualCompletionDate || null,
+        milestoneStatus,
+        milestoneDescription || null,
+        milestoneProgress,
+      ]
+    );
+
+    res.status(201).json({
+      message: "Milestone created successfully!",
+    });
+  } catch (error) {
+    console.error("Error creating milestone:", error.message);
+    res.status(500).json({ error: "Failed to create milestone." });
+  }
+});
+
+app.put("/api/updateMilestone/:id", async (req, res) => {
+  const milestoneId = req.params.id;
+  const {
+    milestoneName,
+    milestoneFromDate,
+    milestoneCompletionDate,
+    milestoneActualCompletionDate,
+    milestoneStatus,
+    milestoneDescription,
+    milestoneProgress,
+  } = req.body;
+
+  if (!milestoneId) {
+    return res.status(400).json({
+      error: "Milestone ID is required.",
+    });
+  }
+
+  try {
+    const connection = await db.promise();
+
+    const [result] = await connection.query(
+      `UPDATE milestones SET 
+        milestone_name = COALESCE(?, milestone_name),
+        milestone_from_date = COALESCE(?, milestone_from_date),
+        milestone_completion_date = COALESCE(?, milestone_completion_date),
+        milestone_actual_completion_date = COALESCE(?, milestone_actual_completion_date),
+        milestone_status = COALESCE(?, milestone_status),
+        milestone_description = COALESCE(?, milestone_description),
+        milestone_progress = COALESCE(?, milestone_progress)
+      WHERE id = ?`,
+      [
+        milestoneName || null,
+        milestoneFromDate || null,
+        milestoneCompletionDate || null,
+        milestoneActualCompletionDate || null,
+        milestoneStatus || null,
+        milestoneDescription || null,
+        milestoneProgress || null,
+        milestoneId,
+      ]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        error: "Milestone not found.",
+      });
+    }
+
+    res.json({
+      message: "Milestone updated successfully!",
+    });
+  } catch (error) {
+    console.error("Error updating milestone:", error.message);
+    res.status(500).json({ error: "Failed to update milestone." });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

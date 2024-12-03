@@ -846,6 +846,134 @@ app.put("/api/updateInspection/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to update inspection." });
   }
 });
+
+
+app.post("/api/createEssentialTest", async (req, res) => {
+  const {
+    projectId,
+    testName,
+    dateOfSampleCollection,
+    samplingAuthority,
+    sampleTestLabName,
+    sampleTestReport,
+    sampleCollectionSiteImage,
+  } = req.body;
+
+  if (!projectId || !testName || !dateOfSampleCollection) {
+    return res.status(400).json({
+      error: "Missing required fields for essential test creation.",
+    });
+  }
+
+  try {
+    const connection = await db.promise();
+
+    const [result] = await connection.query(
+      `INSERT INTO project_essential_tests (
+        project_id, test_name, date_of_sample_collection, sampling_authority, 
+        sample_test_lab_name, sample_test_report
+      ) VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        projectId,
+        testName,
+        dateOfSampleCollection,
+        samplingAuthority || null,
+        sampleTestLabName || null,
+        sampleTestReport || null,
+      ]
+    );
+
+    const essentialTestId = result.insertId;
+
+    if (sampleCollectionSiteImage && sampleCollectionSiteImage.length > 0) {
+      for (const image of sampleCollectionSiteImage) {
+        await connection.query(
+          `INSERT INTO sample_collection_site_images (essential_test_id, image) VALUES (?, ?)`,
+          [essentialTestId, image]
+        );
+      }
+    }
+
+    res.status(201).json({
+      message: "Essential test created successfully!",
+      essentialTestId,
+    });
+  } catch (error) {
+    console.error("Error creating essential test:", error.message);
+    res.status(500).json({ error: "Failed to create essential test." });
+  }
+});
+
+app.put("/api/updateEssentialTest/:id", async (req, res) => {
+  const essentialTestId = req.params.id;
+  const {
+    testName,
+    dateOfSampleCollection,
+    samplingAuthority,
+    sampleTestLabName,
+    sampleTestReport,
+    sampleCollectionSiteImage,
+  } = req.body;
+
+  if (!essentialTestId) {
+    return res.status(400).json({
+      error: "Essential Test ID is required.",
+    });
+  }
+
+  try {
+    const connection = await db.promise();
+
+    // Update essential test details
+    const [result] = await connection.query(
+      `UPDATE project_essential_tests SET 
+        test_name = COALESCE(?, test_name),
+        date_of_sample_collection = COALESCE(?, date_of_sample_collection),
+        sampling_authority = COALESCE(?, sampling_authority),
+        sample_test_lab_name = COALESCE(?, sample_test_lab_name),
+        sample_test_report = COALESCE(?, sample_test_report)
+      WHERE id = ?`,
+      [
+        testName || null,
+        dateOfSampleCollection || null,
+        samplingAuthority || null,
+        sampleTestLabName || null,
+        sampleTestReport || null,
+        essentialTestId,
+      ]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        error: "Essential test not found.",
+      });
+    }
+
+    // Update sample collection site images if provided
+    if (sampleCollectionSiteImage && sampleCollectionSiteImage.length > 0) {
+      // Delete existing images
+      await connection.query(
+        `DELETE FROM sample_collection_site_images WHERE essential_test_id = ?`,
+        [essentialTestId]
+      );
+
+      // Insert new images
+      for (const image of sampleCollectionSiteImage) {
+        await connection.query(
+          `INSERT INTO sample_collection_site_images (essential_test_id, image) VALUES (?, ?)`,
+          [essentialTestId, image]
+        );
+      }
+    }
+
+    res.json({
+      message: "Essential test updated successfully!",
+    });
+  } catch (error) {
+    console.error("Error updating essential test:", error.message);
+    res.status(500).json({ error: "Failed to update essential test." });
+  }
+});
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

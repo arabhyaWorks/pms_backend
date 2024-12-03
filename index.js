@@ -462,18 +462,155 @@ app.get("/api/projects", async (req, res) => {
 
     const [projects] = await connection.query(query);
 
-    res.json(projects.map((project) => ({
-      ...project,
-      lastMonthPhysicalProgress: `${project.lastMonthPhysicalProgress || 0}%`,
-      currentMonthPhysicalProgress: `${project.currentMonthPhysicalProgress || 0}%`,
-      approvedProjectCost: `₹${project.approvedProjectCost.toLocaleString()}`,
-      contractCost: `₹${project.contractCost.toLocaleString()}`,
-      totalReleasedFunds: `₹${project.totalReleasedFunds.toLocaleString()}`,
-      totalExpenditure: `₹${project.totalExpenditure.toLocaleString()}`,
-    })));
+    res.json(
+      projects.map((project) => ({
+        ...project,
+        lastMonthPhysicalProgress: `${project.lastMonthPhysicalProgress || 0}%`,
+        currentMonthPhysicalProgress: `${
+          project.currentMonthPhysicalProgress || 0
+        }%`,
+        approvedProjectCost: `₹${project.approvedProjectCost.toLocaleString()}`,
+        contractCost: `₹${project.contractCost.toLocaleString()}`,
+        totalReleasedFunds: `₹${project.totalReleasedFunds.toLocaleString()}`,
+        totalExpenditure: `₹${project.totalExpenditure.toLocaleString()}`,
+      }))
+    );
   } catch (error) {
     console.error("Error fetching project data:", error.message);
     res.status(500).json({ error: "Failed to fetch project data" });
+  }
+});
+
+// API Endpoint: Create Project
+app.post("/api/projects", async (req, res) => {
+  const {
+    projectName,
+    projectDescription,
+    projectObjectives,
+    projectDepartment,
+    projectStatus,
+    projectApprovalDate,
+    approvedProjectCost,
+    contractDate,
+    contractCost,
+    totalReleasedFunds,
+    totalExpenditure,
+    projectStartDate,
+    originalCompletionDate,
+    revisedCompletionDate,
+    governmentApprovalDateAndOrder,
+    delayReason,
+    schemeName,
+    landAvailabilityDate,
+    projectManager,
+    concernedOfficial,
+  } = req.body;
+
+  if (
+    !projectName ||
+    !projectDepartment ||
+    !projectStatus ||
+    !projectApprovalDate ||
+    !approvedProjectCost ||
+    !contractDate ||
+    !contractCost ||
+    !totalReleasedFunds ||
+    !totalExpenditure ||
+    !projectStartDate ||
+    !originalCompletionDate ||
+    !revisedCompletionDate ||
+    !projectManager
+  ) {
+    return res.status(400).json({
+      error: "Missing required fields for project creation.",
+    });
+  }
+
+  try {
+    const connection = await db.promise();
+
+    await connection.beginTransaction();
+
+    // Insert Project
+    const [projectResult] = await connection.query(
+      `INSERT INTO projects (
+        project_name, project_description, project_objectives, 
+        project_department, project_status, project_approval_date, 
+        approved_project_cost, contract_date, contract_cost, 
+        total_released_funds, total_expenditure, project_start_date, 
+        original_completion_date, revised_completion_date, 
+        government_approval_date_and_order, delay_reason, 
+        scheme_name, land_availability_date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        projectName,
+        projectDescription,
+        projectObjectives,
+        projectDepartment,
+        projectStatus,
+        projectApprovalDate,
+        approvedProjectCost,
+        contractDate,
+        contractCost,
+        totalReleasedFunds,
+        totalExpenditure,
+        projectStartDate,
+        originalCompletionDate,
+        revisedCompletionDate,
+        governmentApprovalDateAndOrder,
+        delayReason,
+        schemeName,
+        landAvailabilityDate,
+      ]
+    );
+
+    const projectId = projectResult.insertId;
+
+    // Insert Project Manager
+    await connection.query(
+      `INSERT INTO project_managers (
+        project_id, official_name, official_email, 
+        official_phone, official_designation, official_department
+      ) VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        projectId,
+        projectManager.officialName,
+        projectManager.officialEmail,
+        projectManager.officialPhone,
+        projectManager.officialDesignation,
+        projectManager.officialDepartment,
+      ]
+    );
+
+    // Insert Concerned Officials
+    if (concernedOfficial && concernedOfficial.length > 0) {
+      for (const official of concernedOfficial) {
+        await connection.query(
+          `INSERT INTO concerned_officials (
+            project_id, official_name, official_email, 
+            official_phone, official_designation, official_department
+          ) VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            projectId,
+            official.officialName,
+            official.officialEmail,
+            official.officialPhone,
+            official.officialDesignation,
+            official.officialDepartment,
+          ]
+        );
+      }
+    }
+
+    await connection.commit();
+
+    res.status(201).json({
+      message: "Project created successfully!",
+      projectId,
+    });
+  } catch (error) {
+    console.error("Error creating project:", error.message);
+    res.status(500).json({ error: "Failed to create project." });
   }
 });
 

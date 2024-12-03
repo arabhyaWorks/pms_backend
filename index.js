@@ -415,6 +415,68 @@ app.get("/api/projects/:id", async (req, res) => {
   }
 });
 
+app.get("/api/projects", async (req, res) => {
+  try {
+    const connection = await db.promise();
+
+    const query = `
+      SELECT 
+        p.id,
+        p.project_name AS projectName,
+        p.project_status AS projectStatus,
+        p.project_department AS projectDepartment,
+        p.project_approval_date AS projectApprovalDate,
+        p.approved_project_cost AS approvedProjectCost,
+        p.contract_date AS contractDate,
+        p.contract_cost AS contractCost,
+        p.total_released_funds AS totalReleasedFunds,
+        p.total_expenditure AS totalExpenditure,
+        p.project_start_date AS projectStartDate,
+        p.original_completion_date AS originalCompletionDate,
+        p.revised_completion_date AS revisedCompletionDate,
+        p.government_approval_date_and_order AS governmentApprovalDateAndOrder,
+        p.delay_reason AS delayReason,
+        p.scheme_name AS schemeName,
+        p.land_availability_date AS landAvailabilityDate,
+        -- Fetch derived data from milestone table
+        MAX(CASE WHEN m.milestone_from_date <= DATE_SUB(NOW(), INTERVAL 1 MONTH) AND m.milestone_completion_date > DATE_SUB(NOW(), INTERVAL 1 MONTH) THEN m.milestone_progress ELSE NULL END) AS lastMonthPhysicalProgress,
+        MAX(CASE WHEN m.milestone_from_date <= NOW() AND m.milestone_completion_date > NOW() THEN m.milestone_progress ELSE NULL END) AS currentMonthPhysicalProgress,
+        -- Fetch derived data from budget table
+        MAX(b.amount_received_date) AS lastFundReceivedDate,
+        MAX(b.utilization_certificate) AS utilizationCertificateSubmissionDate,
+        -- Fetch derived data from gallery table
+        MAX(g_last.image) AS geoTaggedPhotosLastMonth,
+        MAX(g_current.image) AS geoTaggedPhotosCurrentMonth,
+        -- Fetch derived data from meeting instructions
+        MAX(mi.description) AS meetingInstructions,
+        MAX(mi.compliance) AS complianceOfMeetingInstructions,
+        MAX(mi.feedback) AS feedback
+      FROM projects p
+      LEFT JOIN milestones m ON p.id = m.project_id
+      LEFT JOIN budget_installments b ON p.id = b.project_id
+      LEFT JOIN project_gallery g_last ON p.id = g_last.project_id AND g_last.time <= DATE_SUB(NOW(), INTERVAL 1 MONTH)
+      LEFT JOIN project_gallery g_current ON p.id = g_current.project_id AND g_current.time <= NOW()
+      LEFT JOIN meeting_instructions mi ON p.id = mi.project_id
+      GROUP BY p.id
+    `;
+
+    const [projects] = await connection.query(query);
+
+    res.json(projects.map((project) => ({
+      ...project,
+      lastMonthPhysicalProgress: `${project.lastMonthPhysicalProgress || 0}%`,
+      currentMonthPhysicalProgress: `${project.currentMonthPhysicalProgress || 0}%`,
+      approvedProjectCost: `₹${project.approvedProjectCost.toLocaleString()}`,
+      contractCost: `₹${project.contractCost.toLocaleString()}`,
+      totalReleasedFunds: `₹${project.totalReleasedFunds.toLocaleString()}`,
+      totalExpenditure: `₹${project.totalExpenditure.toLocaleString()}`,
+    })));
+  } catch (error) {
+    console.error("Error fetching project data:", error.message);
+    res.status(500).json({ error: "Failed to fetch project data" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

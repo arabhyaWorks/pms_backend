@@ -311,3 +311,34 @@ const ProjectTableDataKeys = [
   "complianceOfMeetingInstructions",
   "feedback",
 ];
+
+
+
+const tableHeaderKeys = [
+  "id",
+  "projectName",
+  "projectStatus",
+  "projectDepartment",
+  "projectApprovalDate",
+  "approvedProjectCost",
+  "contractDate",
+  "contractCost",
+  "totalReleasedFunds",
+  "totalExpenditure",
+  "lastMonthPhysicalProgress",
+  "currentMonthPhysicalProgress",
+  "projectStartDate",
+  "originalCompletionDate",
+  "revisedCompletionDate",
+  "lastFundReceivedDate",
+  "utilizationCertificateSubmissionDate",
+  "governmentApprovalDateAndOrder",
+  "delayReason",
+  "schemeName",
+  "landAvailabilityDate",
+  "geoTaggedPhotosLastMonth",
+  "geoTaggedPhotosCurrentMonth",
+  "meetingInstructions",
+  "complianceOfMeetingInstructions",
+  "feedback",
+];

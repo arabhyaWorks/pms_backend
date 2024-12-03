@@ -847,7 +847,6 @@ app.put("/api/updateInspection/:id", async (req, res) => {
   }
 });
 
-
 app.post("/api/createEssentialTest", async (req, res) => {
   const {
     projectId,
@@ -972,6 +971,189 @@ app.put("/api/updateEssentialTest/:id", async (req, res) => {
   } catch (error) {
     console.error("Error updating essential test:", error.message);
     res.status(500).json({ error: "Failed to update essential test." });
+  }
+});
+
+app.post("/api/projectGallery", async (req, res) => {
+  const {
+    projectId,
+    image,
+    imageDescription,
+    lattitude,
+    longitude,
+    elevation,
+    accuracy,
+    time,
+  } = req.body;
+
+  if (!projectId || !image || !imageDescription || !time) {
+    return res.status(400).json({
+      error: "Project ID and Image are required fields.",
+    });
+  }
+
+  try {
+    const connection = await db.promise();
+
+    const [result] = await connection.query(
+      `INSERT INTO project_gallery (project_id, image, image_description, latitude, longitude, elevation, accuracy, time) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        projectId,
+        image,
+        imageDescription || null,
+        lattitude || null,
+        longitude || null,
+        elevation || null,
+        accuracy || null,
+        time || null,
+      ]
+    );
+
+    res.status(201).json({
+      message: "Gallery entry created successfully!",
+      galleryId: result.insertId,
+    });
+  } catch (error) {
+    console.error("Error creating gallery entry:", error.message);
+    res.status(500).json({ error: "Failed to create gallery entry." });
+  }
+});
+
+app.put("/api/projectGallery/:id", async (req, res) => {
+  const galleryId = req.params.id;
+  const {
+    image,
+    imageDescription,
+    lattitude,
+    longitude,
+    elevation,
+    accuracy,
+    time,
+  } = req.body;
+
+  if (!galleryId) {
+    return res.status(400).json({
+      error: "Gallery ID is required.",
+    });
+  }
+
+  try {
+    const connection = await db.promise();
+
+    const [result] = await connection.query(
+      `UPDATE project_gallery SET 
+        image = COALESCE(?, image),
+        image_description = COALESCE(?, image_description),
+        latitude = COALESCE(?, latitude),
+        longitude = COALESCE(?, longitude),
+        elevation = COALESCE(?, elevation),
+        accuracy = COALESCE(?, accuracy),
+        time = COALESCE(?, time)
+      WHERE id = ?`,
+      [
+        image || null,
+        imageDescription || null,
+        lattitude || null,
+        longitude || null,
+        elevation || null,
+        accuracy || null,
+        time || null,
+        galleryId,
+      ]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Gallery entry not found." });
+    }
+
+    res.json({ message: "Gallery entry updated successfully!" });
+  } catch (error) {
+    console.error("Error updating gallery entry:", error.message);
+    res.status(500).json({ error: "Failed to update gallery entry." });
+  }
+});
+
+app.post("/api/budgetInstallment", async (req, res) => {
+  const {
+    projectId,
+    installmentAmount,
+    amountRecievedDate,
+    utilizationCertificate,
+  } = req.body;
+
+  if (
+    !projectId ||
+    !installmentAmount ||
+    !amountRecievedDate ||
+    !utilizationCertificate
+  ) {
+    return res.status(400).json({
+      error:
+        "Project ID, Installment Amount, and Amount Received Date are required.",
+    });
+  }
+
+  try {
+    const connection = await db.promise();
+
+    const [result] = await connection.query(
+      `INSERT INTO budget_installments (project_id, installment_amount, amount_received_date, utilization_certificate) 
+       VALUES (?, ?, ?, ?)`,
+      [
+        projectId,
+        installmentAmount,
+        amountRecievedDate,
+        utilizationCertificate || null,
+      ]
+    );
+
+    res.status(201).json({
+      message: "Budget installment created successfully!",
+      installmentId: result.insertId,
+    });
+  } catch (error) {
+    console.error("Error creating budget installment:", error.message);
+    res.status(500).json({ error: "Failed to create budget installment." });
+  }
+});
+
+app.put("/api/budgetInstallment/:id", async (req, res) => {
+  const installmentId = req.params.id;
+  const { installmentAmount, amountRecievedDate, utilizationCertificate } =
+    req.body;
+
+  if (!installmentId) {
+    return res.status(400).json({
+      error: "Installment ID is required.",
+    });
+  }
+
+  try {
+    const connection = await db.promise();
+
+    const [result] = await connection.query(
+      `UPDATE budget_installments SET 
+        installment_amount = COALESCE(?, installment_amount),
+        amount_received_date = COALESCE(?, amount_received_date),
+        utilization_certificate = COALESCE(?, utilization_certificate)
+      WHERE id = ?`,
+      [
+        installmentAmount || null,
+        amountRecievedDate || null,
+        utilizationCertificate || null,
+        installmentId,
+      ]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Budget installment not found." });
+    }
+
+    res.json({ message: "Budget installment updated successfully!" });
+  } catch (error) {
+    console.error("Error updating budget installment:", error.message);
+    res.status(500).json({ error: "Failed to update budget installment." });
   }
 });
 app.listen(PORT, () => {

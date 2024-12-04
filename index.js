@@ -2,6 +2,8 @@ const dotenv = require("dotenv");
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const bcrypt = require("bcrypt");
+const { body, param, validationResult } = require("express-validator");
 
 const db = require("./database");
 
@@ -10,6 +12,26 @@ const PORT = process.env.PORT || 3000;
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
+
+const validateRequest = (req, res, next) => {
+  const { body } = req;
+
+  for (const key in body) {
+    if (body[key] === undefined || body[key] === null || body[key] === "") {
+      return res.status(400).json({
+        error: `The field "${key}" cannot be empty.`,
+      });
+    }
+  }
+
+  if (body.officialPhone && !/^\d{10}$/.test(body.officialPhone)) {
+    return res.status(400).json({
+      error: "Phone number must be exactly 10 digits.",
+    });
+  }
+
+  next();
+};
 
 app.get("/", (req, res) => {
   res.send("Hey there this is api");
@@ -481,7 +503,6 @@ app.get("/api/projects", async (req, res) => {
   }
 });
 
-// API Endpoint: Create Project
 app.post("/api/projects", async (req, res) => {
   const {
     projectName,
@@ -1156,6 +1177,191 @@ app.put("/api/budgetInstallment/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to update budget installment." });
   }
 });
+
+// Create User
+app.post("/api/users", validateRequest, async (req, res) => {
+  const {
+    officialName,
+    officialEmail,
+    officialPhone,
+    officialDesignation,
+    officialDepartment,
+    username,
+    password,
+    role,
+    departmentId,
+    status,
+  } = req.body;
+
+  try {
+    const query = `INSERT INTO users 
+      (official_name, official_email, official_phone, official_designation, official_department, username, password, role, department_id, status) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const values = [
+      officialName,
+      officialEmail,
+      officialPhone,
+      officialDesignation,
+      officialDepartment,
+      username,
+      password,
+      role,
+      departmentId,
+      status,
+    ];
+    const [result] = await db.promise().query(query, values);
+    res.status(201).json({
+      message: "User created successfully",
+      userId: result.insertId, // Return the user ID of the newly created user
+    });
+  } catch (error) {
+    console.error("Error creating user:", error.message);
+    res.status(500).json({ error: "Failed to create user" });
+  }
+});
+
+// Update User
+app.put("/api/users/:id", validateRequest, async (req, res) => {
+  const userId = req.params.id;
+  const {
+    officialName,
+    officialEmail,
+    officialPhone,
+    officialDesignation,
+    officialDepartment,
+    username,
+    password,
+    role,
+    departmentId,
+    status,
+  } = req.body;
+
+  try {
+    const query = `UPDATE users 
+      SET official_name = ?, official_email = ?, official_phone = ?, official_designation = ?, official_department = ?, username = ?, password = ?, role = ?, department_id = ?, status = ? 
+      WHERE id = ?`;
+    const values = [
+      officialName,
+      officialEmail,
+      officialPhone,
+      officialDesignation,
+      officialDepartment,
+      username,
+      password,
+      role,
+      departmentId,
+      status,
+      userId,
+    ];
+    await db.promise().query(query, values);
+    res.status(200).json({
+      message: "User updated successfully",
+      userId: userId, // Return the user ID that was updated
+    });
+  } catch (error) {
+    console.error("Error updating user:", error.message);
+    res.status(500).json({ error: "Failed to update user" });
+  }
+});
+
+// Get User by ID
+app.get("/api/users/:id", async (req, res) => {
+  const userId = req.params.id;
+
+  try {
+    const [rows] = await db.promise().query(
+      `SELECT id, official_name AS officialName, official_email AS officialEmail, official_phone AS officialPhone, 
+        official_designation AS officialDesignation, official_department AS officialDepartment, username, 
+        role, department_id AS departmentId, status 
+        FROM users 
+        WHERE id = ?`,
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.status(200).json(rows[0]);
+  } catch (error) {
+    console.error("Error fetching user:", error.message);
+    res.status(500).json({ error: "Failed to fetch user" });
+  }
+});
+
+// Soft Delete User (Set status to -1)
+app.delete("/api/users/:id", async (req, res) => {
+  const userId = req.params.id;
+
+  try {
+    const [result] = await db
+      .promise()
+      .query(`UPDATE users SET status = -1 WHERE id = ?`, [userId]);
+
+    if (result.affectedRows === 0) {
+      return res
+        .status(404)
+        .json({ error: "User not found or already deleted" });
+    }
+
+    res.status(200).json({
+      message: "User status updated to -1 (soft deleted)",
+      userId: userId,
+    });
+  } catch (error) {
+    console.error("Error soft deleting user:", error.message);
+    res.status(500).json({ error: "Failed to soft delete user" });
+  }
+});
+
+app.get("/api/users", async (req, res) => {
+  const { department, role, departmentId, status } = req.body;
+
+  try {
+    // Base query
+    let query = `SELECT 
+      id, 
+      official_name AS officialName, 
+      official_email AS officialEmail, 
+      official_phone AS officialPhone, 
+      official_designation AS officialDesignation, 
+      official_department AS officialDepartment, 
+      username, 
+      role, 
+      department_id AS departmentId, 
+      status 
+      FROM users WHERE 1=1`;
+
+    // Add filters dynamically based on request body
+    const queryParams = [];
+    if (department) {
+      query += ` AND official_department = ?`;
+      queryParams.push(department);
+    }
+    if (role) {
+      query += ` AND role = ?`;
+      queryParams.push(role);
+    }
+    if (departmentId) {
+      query += ` AND department_id = ?`;
+      queryParams.push(departmentId);
+    }
+    if (status) {
+      query += ` AND status = ?`;
+      queryParams.push(status);
+    }
+
+    // Execute the query
+    const [users] = await db.promise().query(query, queryParams);
+    // const formattedUsers = users.users;
+
+    res.status(200).json(users );
+  } catch (error) {
+    console.error("Error fetching users:", error.message);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

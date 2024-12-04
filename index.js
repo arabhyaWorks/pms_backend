@@ -1362,6 +1362,102 @@ app.get("/api/users", async (req, res) => {
   }
 });
 
+
+// fetch all departments
+app.get("/api/departments", async (req, res) => {
+  try {
+    const query = `SELECT 
+      department_id AS departmentId,
+      department_name AS departmentName,
+      department_head AS departmentHead,
+      department_email AS departmentEmail,
+      number_of_projects AS numberOfProjects,
+      status 
+      FROM departments`;
+    const [departments] = await db.promise().query(query);
+
+    res.status(200).json(departments);
+  } catch (error) {
+    console.error("Error fetching departments:", error.message);
+    res.status(500).json({ error: "Failed to fetch departments" });
+  }
+});
+
+// Create Department
+app.post("/api/departments", async (req, res) => {
+  const { departmentName, departmentHead, departmentEmail, numberOfProjects, status } = req.body;
+
+  // Basic validation
+  if (!departmentName || !departmentHead || !departmentEmail) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  try {
+    const query = `INSERT INTO departments 
+      (department_name, department_head, department_email, number_of_projects, status) 
+      VALUES (?, ?, ?, ?, ?)`;
+    const values = [departmentName, departmentHead, departmentEmail, numberOfProjects || 0, status || 1];
+
+    const [result] = await db.promise().query(query, values);
+    res.status(201).json({ message: "Department created successfully", departmentId: result.insertId });
+  } catch (error) {
+    console.error("Error creating department:", error.message);
+    res.status(500).json({ error: "Failed to create department" });
+  }
+});
+
+// Update Department
+app.put("/api/departments/:id", async (req, res) => {
+  const departmentId = req.params.id;
+  const { departmentName, departmentHead, departmentEmail, numberOfProjects, status } = req.body;
+
+  // Validation
+  if (!departmentName || !departmentHead || !departmentEmail) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  try {
+    const query = `UPDATE departments 
+      SET department_name = ?, department_head = ?, department_email = ?, number_of_projects = ?, status = ? 
+      WHERE department_id = ?`;
+    const values = [departmentName, departmentHead, departmentEmail, numberOfProjects || 0, status || 1, departmentId];
+
+    await db.promise().query(query, values);
+    res.status(200).json({ message: "Department updated successfully" });
+  } catch (error) {
+    console.error("Error updating department:", error.message);
+    res.status(500).json({ error: "Failed to update department" });
+  }
+});
+
+// Fetch Department by ID
+app.get("/api/departments/:id", async (req, res) => {
+  const departmentId = req.params.id;
+
+  try {
+    const query = `SELECT 
+      department_id AS departmentId,
+      department_name AS departmentName,
+      department_head AS departmentHead,
+      department_email AS departmentEmail,
+      number_of_projects AS numberOfProjects,
+      status 
+      FROM departments 
+      WHERE department_id = ?`;
+    const [department] = await db.promise().query(query, [departmentId]);
+
+    if (department.length === 0) {
+      return res.status(404).json({ error: "Department not found" });
+    }
+
+    res.status(200).json(department[0]);
+  } catch (error) {
+    console.error("Error fetching department:", error.message);
+    res.status(500).json({ error: "Failed to fetch department" });
+  }
+});
+
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

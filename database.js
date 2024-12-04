@@ -9,6 +9,13 @@ const db = mysql.createConnection({
   database: process.env.DB_DATABASE,
 });
 
+// const db = mysql.createConnection({
+//   host: "developer.chciq0eeey32.ap-south-1.rds.amazonaws.com",
+//   user: "dev_pmo_bhadohi",
+//   password: "Bhadohi$$321##",
+//   database: 'pmo_bhadohi',
+// });
+
 db.connect((err) => {
   if (err) {
     console.error("Error connecting to the database:", err);

@@ -1,6 +1,11 @@
 CREATE DATABASE IF NOT EXISTS projectManagementSystem;
 USE projectManagementSystem;
 
+
+-- mysql> ALTER TABLE projects
+--     -> ADD COLUMN total_approved_budget DECIMAL(15, 2),
+--     -> ADD COLUMN revised_project_cost DECIMAL(15, 2);
+
 CREATE TABLE projects (
     id INT AUTO_INCREMENT PRIMARY KEY,
     project_name VARCHAR(255) NOT NULL,

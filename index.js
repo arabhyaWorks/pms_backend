@@ -39,8 +39,9 @@ app.post("/api/uploadWholeData", async (req, res) => {
         estimated_completion_date, actual_completion_date, 
         work_order_formation_date, land_handover_date, contact_information, 
         last_updated_date, last_updated_date_on_cmis, project_handover_date, 
-        project_handover_to, parallel_requirements
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        project_handover_to, parallel_requirements, total_approved_budget, 
+        revised_project_cost
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         req.body.projectName || null,
         req.body.projectStatus || null,
@@ -71,6 +72,8 @@ app.post("/api/uploadWholeData", async (req, res) => {
         req.body.projectHandoverDate || null,
         req.body.projectHandoverTo || null,
         req.body.parallelRequirements || null,
+        req.body.approvedProjectCost || null,
+        req.body.revisedProjectCost || null,
       ]
     );
 
@@ -524,6 +527,72 @@ app.get("/api/projects/:id", async (req, res) => {
   }
 });
 
+app.delete("/api/projects/:id", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const projectId = req.params.id;
+
+    // Delete related records first
+    await connection.execute(
+      "DELETE FROM meeting_instructions WHERE project_id = ?",
+      [projectId]
+    );
+    await connection.execute(
+      "DELETE FROM project_inspections WHERE project_id = ?",
+      [projectId]
+    );
+    await connection.execute(
+      "DELETE FROM project_essential_tests WHERE project_id = ?",
+      [projectId]
+    );
+    await connection.execute(
+      "DELETE FROM project_gallery WHERE project_id = ?",
+      [projectId]
+    );
+    await connection.execute("DELETE FROM milestones WHERE project_id = ?", [
+      projectId,
+    ]);
+    await connection.execute("DELETE FROM issues WHERE project_id = ?", [
+      projectId,
+    ]);
+    await connection.execute(
+      "DELETE FROM budget_installments WHERE project_id = ?",
+      [projectId]
+    );
+
+    // Delete the project
+    const [result] = await connection.execute(
+      "DELETE FROM projects WHERE id = ?",
+      [projectId]
+    );
+
+    if (result.affectedRows === 0) {
+      await connection.rollback();
+      return res
+        .status(404)
+        .json({ success: false, message: "Project not found" });
+    }
+
+    await connection.commit();
+    res.json({
+      success: true,
+      message: "Project and related data deleted successfully",
+    });
+  } catch (error) {
+    await connection.rollback();
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Error deleting project",
+        error: error.message,
+      });
+  } finally {
+    connection.release();
+  }
+});
+
 app.get("/api/projects", async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -852,18 +921,15 @@ app.post("/api/users/signup", async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating user:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Error creating user",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Error creating user",
+      error: error.message,
+    });
   } finally {
     connection.release();
   }
 });
-
 
 app.put("/api/users/:id", async (req, res) => {
   const connection = await pool.getConnection();
@@ -884,36 +950,36 @@ app.put("/api/users/:id", async (req, res) => {
 
     // Build update query dynamically
     if (officialName) {
-      updates.push('official_name = ?');
+      updates.push("official_name = ?");
       values.push(officialName);
     }
     if (officialPhone) {
-      updates.push('official_phone = ?');
+      updates.push("official_phone = ?");
       values.push(officialPhone);
     }
     if (officialDesignation) {
-      updates.push('official_designation = ?');
+      updates.push("official_designation = ?");
       values.push(officialDesignation);
     }
     if (officialDepartment) {
-      updates.push('official_department = ?');
+      updates.push("official_department = ?");
       values.push(officialDepartment);
     }
     if (role !== undefined) {
-      updates.push('role = ?');
+      updates.push("role = ?");
       values.push(role);
     }
     if (status !== undefined) {
-      updates.push('status = ?');
+      updates.push("status = ?");
       values.push(status);
     }
     if (password) {
       const hashedPassword = await bcrypt.hash(password, 10);
-      updates.push('password = ?');
+      updates.push("password = ?");
       values.push(hashedPassword);
     }
 
-    updates.push('updated_at = ?');
+    updates.push("updated_at = ?");
     values.push(new Date());
 
     // Add userId to values array
@@ -921,26 +987,27 @@ app.put("/api/users/:id", async (req, res) => {
 
     const updateQuery = `
       UPDATE users 
-      SET ${updates.join(', ')}
+      SET ${updates.join(", ")}
       WHERE user_id = ?`;
 
     const [result] = await connection.execute(updateQuery, values);
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     res.json({
       success: true,
-      message: "User updated successfully"
+      message: "User updated successfully",
     });
-
   } catch (error) {
     console.error("Error updating user:", error);
-    res.status(500).json({ 
-      success: false, 
-      message: "Error updating user", 
-      error: error.message 
+    res.status(500).json({
+      success: false,
+      message: "Error updating user",
+      error: error.message,
     });
   } finally {
     connection.release();
@@ -962,12 +1029,18 @@ app.get("/api/users/:id", async (req, res) => {
     );
 
     if (!user.length) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     res.json(user[0]);
   } catch (error) {
-    res.status(500).json({ success: false, message: "Error fetching user", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error fetching user",
+      error: error.message,
+    });
   } finally {
     connection.release();
   }
@@ -982,23 +1055,25 @@ app.get("/api/users", async (req, res) => {
     let values = [];
 
     if (department) {
-      conditions.push('official_department = ?');
+      conditions.push("official_department = ?");
       values.push(department);
     }
     if (role) {
-      conditions.push('role = ?');
+      conditions.push("role = ?");
       values.push(role);
     }
     if (departmentId) {
-      conditions.push('department_id = ?');
+      conditions.push("department_id = ?");
       values.push(departmentId);
     }
     if (status !== undefined) {
-      conditions.push('status = ?');
+      conditions.push("status = ?");
       values.push(status);
     }
 
-    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const whereClause = conditions.length
+      ? `WHERE ${conditions.join(" AND ")}`
+      : "";
 
     const [users] = await connection.execute(
       `SELECT 
@@ -1014,14 +1089,284 @@ app.get("/api/users", async (req, res) => {
     res.json({
       success: true,
       count: users.length,
-      data: users
+      data: users,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Error fetching users", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error fetching users",
+      error: error.message,
+    });
   } finally {
     connection.release();
   }
 });
+
+// Project Status Statistics
+app.get("/api/stats/project-status", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [stats] = await connection.execute(`
+      SELECT 
+        project_status, 
+        COUNT(*) as count,
+        SUM(total_approved_budget) as totalBudget,
+        COUNT(CASE WHEN actual_completion_date IS NOT NULL THEN 1 END) as completedCount
+      FROM projects 
+      GROUP BY project_status
+    `);
+
+    res.json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  } finally {
+    connection.release();
+  }
+});
+
+// Project Status By ID Statistics
+app.get("/api/stats/project-status/:statusId", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const statusMap = {
+      1: "In Planning",
+      2: "In Progress",
+      3: "On Hold",
+      4: "Delayed",
+      5: "Completed",
+    };
+
+    const status = statusMap[req.params.statusId];
+
+    const [stats] = await connection.execute(
+      `
+      SELECT 
+        COUNT(*) as totalProjects,
+        SUM(total_approved_budget) as totalBudget,
+        AVG(total_approved_budget) as avgBudget,
+        MIN(project_sanction_date) as oldestProject,
+        MAX(project_sanction_date) as newestProject,
+        COUNT(CASE WHEN revised_project_cost IS NOT NULL THEN 1 END) as projectsWithRevisions
+      FROM projects 
+      WHERE project_status = ?
+    `,
+      [status]
+    );
+
+    res.json({
+      success: true,
+      status,
+      data: stats[0],
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  } finally {
+    connection.release();
+  }
+});
+
+// Department Statistics
+app.get("/api/stats/department/:departmentId", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [stats] = await connection.execute(
+      `
+      SELECT 
+        project_department,
+        COUNT(*) as totalProjects,
+        SUM(total_approved_budget) as totalBudget,
+        COUNT(CASE WHEN project_status = 'In Progress' THEN 1 END) as inProgressCount,
+        COUNT(CASE WHEN project_status = 'Completed' THEN 1 END) as completedCount,
+        COUNT(CASE WHEN project_status = 'On Hold' THEN 1 END) as onHoldCount,
+        COUNT(CASE WHEN project_status = 'In Planning' THEN 1 END) as inPlanningCount
+      FROM projects 
+      WHERE department_id = ?
+      GROUP BY project_department
+    `,
+      [req.params.departmentId]
+    );
+
+    res.json({
+      success: true,
+      data: stats[0],
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  } finally {
+    connection.release();
+  }
+});
+
+// Executing Agency Statistics
+app.get("/api/stats/executing-agency/:agencyId", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [stats] = await connection.execute(
+      `
+      SELECT 
+        executing_agency,
+        COUNT(*) as totalProjects,
+        SUM(total_approved_budget) as totalBudget,
+        COUNT(CASE WHEN project_status = 'In Progress' THEN 1 END) as inProgressCount,
+        COUNT(CASE WHEN project_status = 'Completed' THEN 1 END) as completedCount,
+        COUNT(CASE WHEN project_status = 'On Hold' THEN 1 END) as onHoldCount,
+        COUNT(CASE WHEN project_status = 'In Planning' THEN 1 END) as inPlanningCount,
+        COUNT(DISTINCT project_department) as departmentsCount
+      FROM projects 
+      WHERE executing_agency_id = ?
+      GROUP BY executing_agency
+    `,
+      [req.params.agencyId]
+    );
+
+    res.json({
+      success: true,
+      data: stats[0],
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  } finally {
+    connection.release();
+  }
+});
+
+// Budget Overview Stats
+app.get("/api/stats/budget", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [totalBudget] = await connection.execute(`
+      SELECT 
+        SUM(total_approved_budget) as sanctioned,
+        (SELECT SUM(installment_amount) FROM budget_installments) as released,
+        SUM(total_approved_budget) - (SELECT SUM(installment_amount) FROM budget_installments) as pending
+      FROM projects
+    `);
+
+    res.json({
+      success: true,
+      data: totalBudget[0]
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  } finally {
+    connection.release();
+  }
+});
+
+// Department-wise Project Count
+app.get("/api/stats/department-count", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [stats] = await connection.execute(`
+      SELECT 
+        project_department as name,
+        COUNT(*) as value
+      FROM projects 
+      GROUP BY project_department
+      ORDER BY value DESC
+    `);
+
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  } finally {
+    connection.release();
+  }
+});
+
+// Project Status Distribution
+app.get("/api/stats/status-distribution", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [stats] = await connection.execute(`
+      SELECT 
+        project_status as name,
+        COUNT(*) as value
+      FROM projects 
+      GROUP BY project_status
+    `);
+
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  } finally {
+    connection.release();
+  }
+});
+
+
+app.get("/api/stats/budget-overview", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [totalStats] = await connection.execute(`
+      SELECT COUNT(*) as totalProjects FROM projects
+    `);
+
+    const [budgetStats] = await connection.execute(`
+      SELECT 
+        SUM(total_approved_budget) as totalApprovedBudget,
+        (SELECT SUM(installment_amount) FROM budget_installments) as totalReceivedBudget,
+        (SELECT SUM(installment_expenditure) FROM budget_installments) as totalExpenditure
+      FROM projects
+    `);
+
+    const [activeProjectStats] = await connection.execute(`
+      SELECT 
+        COUNT(*) as activeProjectCount,
+        SUM(total_approved_budget) as activeProjectBudget,
+        (
+          SELECT SUM(bi.installment_amount) 
+          FROM budget_installments bi
+          JOIN projects p ON bi.project_id = p.id
+          WHERE p.project_status = 2
+        ) as activeProjectReceived,
+        (
+          SELECT SUM(bi.installment_expenditure)
+          FROM budget_installments bi
+          JOIN projects p ON bi.project_id = p.id
+          WHERE p.project_status = 2
+        ) as activeProjectExpenditure
+      FROM projects 
+      WHERE project_status = 2
+    `);
+
+    res.json({
+      success: true,
+      totalProjects: totalStats[0].totalProjects,
+      totalBudget: {
+        approved: budgetStats[0].totalApprovedBudget || 0,
+        received: budgetStats[0].totalReceivedBudget || 0,
+        expenditure: budgetStats[0].totalExpenditure || 0,
+        remaining: (budgetStats[0].totalApprovedBudget || 0) - (budgetStats[0].totalReceivedBudget || 0),
+        unspent: (budgetStats[0].totalReceivedBudget || 0) - (budgetStats[0].totalExpenditure || 0)
+      },
+      activeProjects: {
+        count: activeProjectStats[0].activeProjectCount || 0,
+        budget: activeProjectStats[0].activeProjectBudget || 0,
+        received: activeProjectStats[0].activeProjectReceived || 0,
+        expenditure: activeProjectStats[0].activeProjectExpenditure || 0,
+        remaining: (activeProjectStats[0].activeProjectBudget || 0) - (activeProjectStats[0].activeProjectReceived || 0),
+        unspent: (activeProjectStats[0].activeProjectReceived || 0) - (activeProjectStats[0].activeProjectExpenditure || 0)
+      }
+    });
+
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ success: false, error: error.message });
+  } finally {
+    connection.release();
+  }
+});
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

@@ -44,10 +44,7 @@ CREATE TABLE departments (
 CREATE TABLE executing_agency (
     executing_agency_id INT AUTO_INCREMENT PRIMARY KEY,
     executing_agency_name VARCHAR(255) NOT NULL,
-    executing_agency_address TEXT,
-    executing_agency_phone VARCHAR(15),
-    executing_agency_email VARCHAR(255),
-    executing_agency_website VARCHAR(255),
+
     status TINYINT(1) DEFAULT 1
 );
 

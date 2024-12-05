@@ -69,7 +69,7 @@ const fetchTable = [
 
 const tableHeaders = {
   id: 1,
-  projectName: "Smart City Development Phase 1",
+  projectName: "परियोजना का नाम	",
   projectStatus: "In Progress",
   projectDepartment: "Urban Development",
   executingAgency: "Metro Infrastructure Ltd",

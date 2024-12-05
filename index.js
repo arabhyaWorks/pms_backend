@@ -279,7 +279,9 @@ app.get("/api/projects/:id", async (req, res) => {
           last_updated_date_on_cmis as lastUpdatedDateOnCmis,
           project_handover_date as projectHandoverDate,
           project_handover_to as projectHandoverTo,
-          parallel_requirements as parallelRequirements
+          parallel_requirements as parallelRequirements,
+          total_approved_budget as totalApprovedBudget,
+          revised_project_cost as revisedProjectCost
         FROM projects WHERE id = ?`,
       [projectId]
     );
@@ -522,9 +524,9 @@ app.get("/api/projects/:id", async (req, res) => {
 });
 
 app.get("/api/projects", async (req, res) => {
-    const connection = await pool.getConnection();
-    try {
-      const [projects] = await connection.execute(`
+  const connection = await pool.getConnection();
+  try {
+    const [projects] = await connection.execute(`
         SELECT 
           p.id, p.project_name as projectName, p.project_status as projectStatus,
           p.project_department as projectDepartment, p.executing_agency as executingAgency,
@@ -540,11 +542,14 @@ app.get("/api/projects", async (req, res) => {
           p.work_order_formation_date as workOrderFormationDate,
           p.land_handover_date as landHandoverDate,
           p.last_updated_date as lastUpdatedDate,
-          p.last_updated_date_on_cmis as lastUpdatedDateOnCmis
+          p.last_updated_date_on_cmis as lastUpdatedDateOnCmis,
+          p.total_approved_budget as totalApprovedBudget,
+          p.revised_project_cost as revisedProjectCost
         FROM projects p
       `);
-  
-      const projectsWithDetails = await Promise.all(projects.map(async (project) => {
+
+    const projectsWithDetails = await Promise.all(
+      projects.map(async (project) => {
         const [milestones] = await connection.execute(
           `SELECT milestone_progress as milestoneProgress, milestone_from_date as milestoneFromDate 
            FROM milestones 
@@ -552,24 +557,30 @@ app.get("/api/projects", async (req, res) => {
            ORDER BY milestone_from_date DESC`,
           [project.id]
         );
-  
+
         const currentDate = new Date();
         const currentMonth = currentDate.getMonth();
         const currentYear = currentDate.getFullYear();
-  
-        const currentMonthProgress = milestones.find(m => {
-          const milestoneDate = new Date(m.milestoneFromDate);
-          return milestoneDate.getMonth() === currentMonth && 
-                 milestoneDate.getFullYear() === currentYear;
-        })?.milestoneProgress || null;
-  
-        const lastMonthProgress = milestones.find(m => {
-          const milestoneDate = new Date(m.milestoneFromDate);
-          return (currentMonth === 0 ? 
-                  (milestoneDate.getMonth() === 11 && milestoneDate.getFullYear() === currentYear - 1) :
-                  (milestoneDate.getMonth() === currentMonth - 1 && milestoneDate.getFullYear() === currentYear));
-        })?.milestoneProgress || null;
-  
+
+        const currentMonthProgress =
+          milestones.find((m) => {
+            const milestoneDate = new Date(m.milestoneFromDate);
+            return (
+              milestoneDate.getMonth() === currentMonth &&
+              milestoneDate.getFullYear() === currentYear
+            );
+          })?.milestoneProgress || null;
+
+        const lastMonthProgress =
+          milestones.find((m) => {
+            const milestoneDate = new Date(m.milestoneFromDate);
+            return currentMonth === 0
+              ? milestoneDate.getMonth() === 11 &&
+                  milestoneDate.getFullYear() === currentYear - 1
+              : milestoneDate.getMonth() === currentMonth - 1 &&
+                  milestoneDate.getFullYear() === currentYear;
+          })?.milestoneProgress || null;
+
         const [budgetSummary] = await connection.execute(
           `SELECT 
             SUM(installment_amount) as totalReleasedFunds,
@@ -580,7 +591,7 @@ app.get("/api/projects", async (req, res) => {
            WHERE project_id = ?`,
           [project.id]
         );
-  
+
         const [photos] = await connection.execute(
           `SELECT image, time 
            FROM project_gallery 
@@ -589,20 +600,26 @@ app.get("/api/projects", async (req, res) => {
            LIMIT 2`,
           [project.id]
         );
-  
-        const currentMonthPhoto = photos.find(p => {
-          const photoDate = new Date(p.time);
-          return photoDate.getMonth() === currentMonth && 
-                 photoDate.getFullYear() === currentYear;
-        })?.image || null;
-  
-        const lastMonthPhoto = photos.find(p => {
-          const photoDate = new Date(p.time);
-          return (currentMonth === 0 ? 
-                  (photoDate.getMonth() === 11 && photoDate.getFullYear() === currentYear - 1) :
-                  (photoDate.getMonth() === currentMonth - 1 && photoDate.getFullYear() === currentYear));
-        })?.image || null;
-  
+
+        const currentMonthPhoto =
+          photos.find((p) => {
+            const photoDate = new Date(p.time);
+            return (
+              photoDate.getMonth() === currentMonth &&
+              photoDate.getFullYear() === currentYear
+            );
+          })?.image || null;
+
+        const lastMonthPhoto =
+          photos.find((p) => {
+            const photoDate = new Date(p.time);
+            return currentMonth === 0
+              ? photoDate.getMonth() === 11 &&
+                  photoDate.getFullYear() === currentYear - 1
+              : photoDate.getMonth() === currentMonth - 1 &&
+                  photoDate.getFullYear() === currentYear;
+          })?.image || null;
+
         const [latestMeeting] = await connection.execute(
           `SELECT description, compliance, feedback
            FROM meeting_instructions 
@@ -611,7 +628,7 @@ app.get("/api/projects", async (req, res) => {
            LIMIT 1`,
           [project.id]
         );
-  
+
         return {
           ...project,
           lastMonthPhysicalProgress: lastMonthProgress,
@@ -619,28 +636,157 @@ app.get("/api/projects", async (req, res) => {
           totalReleasedFunds: budgetSummary[0].totalReleasedFunds,
           totalExpenditure: budgetSummary[0].totalExpenditure,
           lastFundReceivedDate: budgetSummary[0].lastFundReceivedDate,
-          utilizationCertificateSubmissionDate: budgetSummary[0].utilizationCertificateSubmissionDate,
+          utilizationCertificateSubmissionDate:
+            budgetSummary[0].utilizationCertificateSubmissionDate,
           geoTaggedPhotosLastMonth: lastMonthPhoto,
           geoTaggedPhotosCurrentMonth: currentMonthPhoto,
           meetingDescription: latestMeeting[0]?.description || null,
           meetingCompliance: latestMeeting[0]?.compliance || null,
-          meetingfeedback: latestMeeting[0]?.feedback || null
+          meetingfeedback: latestMeeting[0]?.feedback || null,
         };
-      }));
-  
-      res.json(projectsWithDetails);
-  
-    } catch (error) {
-      console.error("Error:", error);
-      res.status(500).json({
+      })
+    );
+
+    res.json(projectsWithDetails);
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching projects data",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+
+app.post("/api/projects", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    // Validate mandatory fields
+    const mandatoryFields = [
+      "projectName",
+      "projectDepartment",
+      // "departmentId",
+      "executingAgency",
+      // "executingAgencyId",
+      "fundSanctionedBy",
+    ];
+
+    const missingFields = mandatoryFields.filter((field) => !req.body[field]);
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
         success: false,
-        message: "Error fetching projects data",
-        error: error.message
+        message: "Missing mandatory fields",
+        missingFields,
       });
-    } finally {
-      connection.release();
     }
-  });
+
+    // Insert project data with explicit column names
+    const [result] = await connection.execute(
+      `INSERT INTO projects (
+        project_name,
+        project_status,
+        project_goal,
+        project_department,
+        department_id,
+        executing_agency,
+        executing_agency_id,
+        scheme,
+        description,
+        fund_sanctioned_by,
+        concerned_official_name,
+        concerned_project_manager,
+        project_sanction_date,
+        project_financial_approval_go_number,
+        project_financial_approval_date,
+        actual_project_start_date,
+        project_completion_date,
+        revised_project_sanction_date,
+        revised_project_completion_date,
+        estimated_completion_date,
+        actual_completion_date,
+        work_order_formation_date,
+        land_handover_date,
+        contact_information,
+        total_approved_budget,
+        revised_project_cost,
+        last_updated_date,
+        last_updated_date_on_cmis
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        req.body.projectName,
+        req.body.projectStatus || null,
+        req.body.projectGoal || null,
+        req.body.projectDepartment,
+        req.body.departmentId,
+        req.body.executingAgency,
+        req.body.executingAgencyId,
+        req.body.scheme || null,
+        req.body.description || null,
+        req.body.fundSanctionedBy,
+        req.body.concernedOfficialName || null,
+        req.body.concernedProjectManager || null,
+        req.body.projectSanctionDate || null,
+        req.body.projectFinancialApprovalGoNumber || null,
+        req.body.projectFinancialApprovalDate || null,
+        req.body.actualProjectStartDate || null,
+        req.body.projectCompletionDate || null,
+        req.body.revisedProjectSanctionDate || null,
+        req.body.revisedProjectCompletionDate || null,
+        req.body.estimatedCompletionDate || null,
+        req.body.actualCompletionDate || null,
+        req.body.workOrderFormationDate || null,
+        req.body.landHandoverDate || null,
+        req.body.contactInformation || null,
+        req.body.totalApprovedBudget || null,
+        req.body.revisedProjectCost || null,
+        new Date(),
+        new Date()
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Project created successfully",
+      projectId: result.insertId,
+      data: {
+        ...req.body,
+        id: result.insertId,
+        lastUpdatedDate: new Date(),
+        lastUpdatedDateOnCmis: new Date(),
+      },
+    });
+  } catch (error) {
+    console.error("Error creating project:", error);
+
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        success: false,
+        message: "Project with this name already exists",
+        error: error.message,
+      });
+    }
+
+    if (error.code === "ER_NO_REFERENCED_ROW_2") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid department ID or executing agency ID",
+        error: error.message,
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Error creating project",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

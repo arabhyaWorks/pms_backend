@@ -494,6 +494,9 @@ app.get("/api/projects/:id", async (req, res) => {
       }
     });
 
+
+    
+
     const response = {
       ...projectRows[0],
       lastMonthPhysicalProgress: lastMonthProgress,

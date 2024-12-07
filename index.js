@@ -40,8 +40,9 @@ app.post("/api/uploadWholeData", async (req, res) => {
         work_order_formation_date, land_handover_date, contact_information, 
         last_updated_date, last_updated_date_on_cmis, project_handover_date, 
         project_handover_to, parallel_requirements, total_approved_budget, 
-        revised_project_cost
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        revised_project_cost, approved_project_cost, contract_date, contract_cost,
+        total_released_funds, total_expenditure, delay_reason
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         req.body.projectName || null,
         req.body.projectStatus || null,
@@ -74,6 +75,12 @@ app.post("/api/uploadWholeData", async (req, res) => {
         req.body.parallelRequirements || null,
         req.body.approvedProjectCost || null,
         req.body.revisedProjectCost || null,
+        req.body.approvedProjectCost || null,
+        req.body.contractDate || null,
+        req.body.contractCost || null,
+        req.body.totalReleasedFunds || null,
+        req.body.totalExpenditure || null,
+        req.body.delayReason || null,
       ]
     );
 
@@ -285,7 +292,13 @@ app.get("/api/projects/:id", async (req, res) => {
           project_handover_to as projectHandoverTo,
           parallel_requirements as parallelRequirements,
           total_approved_budget as totalApprovedBudget,
-          revised_project_cost as revisedProjectCost
+          revised_project_cost as revisedProjectCost, 
+          approved_project_cost as approvedProjectCost,
+          contract_date as contractDate,
+          contract_cost as contractCost,
+          total_released_funds as totalReleasedFunds, 
+          total_expenditure as totalExpenditure,
+          delay_reason as delayReason
         FROM projects WHERE id = ?`,
       [projectId]
     );
@@ -494,9 +507,6 @@ app.get("/api/projects/:id", async (req, res) => {
       }
     });
 
-
-    
-
     const response = {
       ...projectRows[0],
       lastMonthPhysicalProgress: lastMonthProgress,
@@ -584,13 +594,11 @@ app.delete("/api/projects/:id", async (req, res) => {
     });
   } catch (error) {
     await connection.rollback();
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Error deleting project",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Error deleting project",
+      error: error.message,
+    });
   } finally {
     connection.release();
   }
@@ -617,7 +625,13 @@ app.get("/api/projects", async (req, res) => {
           p.last_updated_date as lastUpdatedDate,
           p.last_updated_date_on_cmis as lastUpdatedDateOnCmis,
           p.total_approved_budget as totalApprovedBudget,
-          p.revised_project_cost as revisedProjectCost
+          p.revised_project_cost as revisedProjectCost,
+          p.approved_project_cost as approvedProjectCost,
+          p.contract_date as contractDate,
+          p.contract_cost as contractCost,
+          p.total_released_funds as totalReleasedFunds,
+          p.total_expenditure as totalExpenditure,
+          p.delay_reason as delayReason
         FROM projects p
       `);
 
@@ -656,8 +670,6 @@ app.get("/api/projects", async (req, res) => {
 
         const [budgetSummary] = await connection.execute(
           `SELECT 
-            SUM(installment_amount) as totalReleasedFunds,
-            SUM(installment_expenditure) as totalExpenditure,
             MAX(amount_received_date) as lastFundReceivedDate,
             MAX(utilization_certificate) as utilizationCertificateSubmissionDate
            FROM budget_installments 
@@ -706,8 +718,8 @@ app.get("/api/projects", async (req, res) => {
           ...project,
           lastMonthPhysicalProgress: lastMonthProgress,
           currentMonthPhysicalProgress: currentMonthProgress,
-          totalReleasedFunds: budgetSummary[0].totalReleasedFunds,
-          totalExpenditure: budgetSummary[0].totalExpenditure,
+          // totalReleasedFunds: budgetSummary[0].totalReleasedFunds,
+          // totalExpenditure: budgetSummary[0].totalExpenditure,
           lastFundReceivedDate: budgetSummary[0].lastFundReceivedDate,
           utilizationCertificateSubmissionDate:
             budgetSummary[0].utilizationCertificateSubmissionDate,
@@ -783,11 +795,9 @@ app.post("/api/projects", async (req, res) => {
         work_order_formation_date,
         land_handover_date,
         contact_information,
-        total_approved_budget,
+        approved_project_cost,
         revised_project_cost,
-        last_updated_date,
-        last_updated_date_on_cmis
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, )`,
       [
         req.body.projectName,
         req.body.projectStatus || null,
@@ -813,7 +823,7 @@ app.post("/api/projects", async (req, res) => {
         req.body.workOrderFormationDate || null,
         req.body.landHandoverDate || null,
         req.body.contactInformation || null,
-        req.body.totalApprovedBudget || null,
+        req.body.approvedProjectCost || null,
         req.body.revisedProjectCost || null,
         new Date(),
         new Date(),
@@ -1250,7 +1260,7 @@ app.get("/api/stats/budget", async (req, res) => {
 
     res.json({
       success: true,
-      data: totalBudget[0]
+      data: totalBudget[0],
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1274,7 +1284,7 @@ app.get("/api/stats/department-count", async (req, res) => {
 
     res.json({
       success: true,
-      data: stats
+      data: stats,
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1297,7 +1307,7 @@ app.get("/api/stats/status-distribution", async (req, res) => {
 
     res.json({
       success: true,
-      data: stats
+      data: stats,
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1305,7 +1315,6 @@ app.get("/api/stats/status-distribution", async (req, res) => {
     connection.release();
   }
 });
-
 
 app.get("/api/stats/budget-overview", async (req, res) => {
   const connection = await pool.getConnection();
@@ -1349,19 +1358,26 @@ app.get("/api/stats/budget-overview", async (req, res) => {
         approved: budgetStats[0].totalApprovedBudget || 0,
         received: budgetStats[0].totalReceivedBudget || 0,
         expenditure: budgetStats[0].totalExpenditure || 0,
-        remaining: (budgetStats[0].totalApprovedBudget || 0) - (budgetStats[0].totalReceivedBudget || 0),
-        unspent: (budgetStats[0].totalReceivedBudget || 0) - (budgetStats[0].totalExpenditure || 0)
+        remaining:
+          (budgetStats[0].totalApprovedBudget || 0) -
+          (budgetStats[0].totalReceivedBudget || 0),
+        unspent:
+          (budgetStats[0].totalReceivedBudget || 0) -
+          (budgetStats[0].totalExpenditure || 0),
       },
       activeProjects: {
         count: activeProjectStats[0].activeProjectCount || 0,
         budget: activeProjectStats[0].activeProjectBudget || 0,
         received: activeProjectStats[0].activeProjectReceived || 0,
         expenditure: activeProjectStats[0].activeProjectExpenditure || 0,
-        remaining: (activeProjectStats[0].activeProjectBudget || 0) - (activeProjectStats[0].activeProjectReceived || 0),
-        unspent: (activeProjectStats[0].activeProjectReceived || 0) - (activeProjectStats[0].activeProjectExpenditure || 0)
-      }
+        remaining:
+          (activeProjectStats[0].activeProjectBudget || 0) -
+          (activeProjectStats[0].activeProjectReceived || 0),
+        unspent:
+          (activeProjectStats[0].activeProjectReceived || 0) -
+          (activeProjectStats[0].activeProjectExpenditure || 0),
+      },
     });
-
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ success: false, error: error.message });
@@ -1370,6 +1386,138 @@ app.get("/api/stats/budget-overview", async (req, res) => {
   }
 });
 
+// Entity API
+// Departments and Executive agencies are considered as entities
+
+app.post("/api/entities", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { entityName, entityType, status } = req.body;
+
+    if (!entityName || !entityType || !status) {
+      return res.status(400).json({
+        success: false,
+        message: "Please fill the required fields",
+      });
+    }
+
+    const [result] = await connection.execute(
+      `INSERT INTO entity (entity_name, entity_type, status) VALUES (?, ?, ?)`,
+      [entityName, entityType || 0, status || 1]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Entity created successfully",
+      entityId: result.insertId,
+    });
+  } catch (error) {
+    console.error("Error creating entity:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error creating entity",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+app.get("/api/entities/:id", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const entityId = req.params.id;
+
+    const [rows] = await connection.execute(
+      `SELECT id, entity_name, entity_type, status 
+       FROM entity 
+       WHERE id = ?`,
+      [entityId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Entity not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      data: rows[0],
+    });
+  } catch (error) {
+    console.error("Error fetching entity by ID:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching entity",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+app.put("/api/entities/:id", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const entityId = req.params.id;
+    const { entityName, entityType, status } = req.body;
+
+    const updates = [];
+    const values = [];
+
+    if (entityName) {
+      updates.push("entity_name = ?");
+      values.push(entityName);
+    }
+    if (entityType !== undefined) {
+      updates.push("entity_type = ?");
+      values.push(entityType);
+    }
+    if (status !== undefined) {
+      updates.push("status = ?");
+      values.push(status);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No fields to update",
+      });
+    }
+
+    values.push(entityId);
+
+    const query = `
+      UPDATE entity 
+      SET ${updates.join(", ")} 
+      WHERE id = ?`;
+
+    const [result] = await connection.execute(query, values);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Entity not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Entity updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating entity:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating entity",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

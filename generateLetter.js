@@ -286,7 +286,6 @@ const addInspections = (doc, data) => {
   });
   doc.moveDown();
 
-
   const tableTop = doc.y;
   const colWidths = [30, 80, 100, 120, 80];
 
@@ -306,8 +305,6 @@ const addInspections = (doc, data) => {
 
   doc.moveDown();
   let yPos = doc.y;
-
-
 
   data.projectInspection.forEach((milestone, index) => {
     if (yPos > 750) {
@@ -334,10 +331,11 @@ const addInspections = (doc, data) => {
 
 const addEssentialTests = (doc, data) => {
   if (doc.y > 650) doc.addPage();
-
-  doc.fontSize(16).text("Essential Tests", { underline: true });
+  doc.fontSize(16).text("Project Inspection", {
+    underline: true,
+    indent: 50,
+  });
   doc.moveDown();
-
   data.projectEssentialTest.forEach((test, index) => {
     doc.fontSize(12).text(`Test ${index + 1}`);
     doc
@@ -353,6 +351,70 @@ const addEssentialTests = (doc, data) => {
   });
   doc.moveDown();
 };
+
+// const addEssentialTests = (doc, data) => {
+//     if (doc.y > 650) doc.addPage();
+
+//     doc.fontSize(16).text("Essential Tests", { underline: true });
+//     doc.moveDown();
+
+//     const tableTop = doc.y;
+//     const colWidths = [30, 80, 100, 120, 80, 80, 60]; // Added width for Images column
+//     const startX = 50;
+
+//     // Headers
+//     let xPos = startX;
+//     const headers = [
+//       "S. No",
+//       "Inspection Date",
+//       "Officer",
+//       "Type",
+//       "Instruction",
+//       "Report",
+//       "Images"
+//     ];
+
+//     headers.forEach((header, i) => {
+//       doc.fontSize(10).text(header, xPos, tableTop, {
+//         width: colWidths[i],
+//         align: 'left'
+//       });
+//       xPos += colWidths[i];
+//     });
+
+//     doc.moveDown();
+//     let yPos = doc.y;
+
+//     data.projectEssentialTest.forEach((test, index) => {
+//       if (yPos > 700) {
+//         doc.addPage();
+//         yPos = doc.page.margins.top + 50;
+//       }
+
+//       xPos = startX;
+//       const row = [
+//         (index + 1).toString(),
+//         new Date(test.dateOfSampleCollection).toLocaleDateString(),
+//         test.samplingAuthority || '',
+//         test.testName || '',
+//         test.sampleTestLabName || '',
+//         test.sampleTestReport || '',
+//         test.sampleCollectionSiteImages?.length || '0'
+//       ];
+
+//       row.forEach((cell, i) => {
+//         doc.fontSize(10).text(cell, xPos, yPos, {
+//           width: colWidths[i],
+//           align: 'left'
+//         });
+//         xPos += colWidths[i];
+//       });
+
+//       yPos += 20;
+//     });
+
+//     doc.moveDown(2);
+//    };
 
 const addBudget = (doc, data) => {
   if (doc.y > 650) doc.addPage();
@@ -389,9 +451,6 @@ const addBudget = (doc, data) => {
 // Export the function
 module.exports = generateProjectPDF;
 
-// Usage:
-// ```javascript
-// const generateProjectPDF = require('./generatePdf');
 
 generateProjectPDF(data)
   .then(() => console.log("PDF generated successfully"))

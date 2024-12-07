@@ -146,13 +146,13 @@ CREATE TABLE issues (
     id INT AUTO_INCREMENT PRIMARY KEY,
     issue_name VARCHAR(255),
     issue_description TEXT,
-    issue_raised_by VARCHAR(255),
+    issue_raised_by INT,
     issue_raised_date DATE,
-    assigned_to VARCHAR(255),
+    assigned_to INT,
     issue_reported_on DATE,
     issue_status VARCHAR(255),
     issue_closed_date DATE,
-    issue_closed_by VARCHAR(255),
+    issue_closed_by INT,
     project_id INT,
     FOREIGN KEY (project_id) REFERENCES projects(id)
 );

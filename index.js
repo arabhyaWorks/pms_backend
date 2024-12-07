@@ -2283,6 +2283,270 @@ app.put("/api/gallery/:id", async (req, res) => {
   }
 });
 
+app.post("/api/projects/:projectId/issues", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { projectId } = req.params; // Extract project ID from route parameters
+    const {
+      issueName,
+      issueDescription,
+      issueRaisedBy,
+      issueRaisedDate,
+      assignedTo,
+      issueReportedOn,
+      issueStatus,
+      issueClosedDate,
+      issueClosedBy,
+    } = req.body;
+
+    // Validate required fields
+    if (!issueName || !issueRaisedBy || !issueRaisedDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Issue name, raised by, and raised date are required",
+      });
+    }
+
+    // Insert the issue into the database
+    const [result] = await connection.execute(
+      `INSERT INTO issues (
+        issue_name, issue_description, issue_raised_by, issue_raised_date, 
+        assigned_to, issue_reported_on, issue_status, issue_closed_date, 
+        issue_closed_by, project_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        issueName,
+        issueDescription || null,
+        issueRaisedBy,
+        issueRaisedDate,
+        assignedTo || null,
+        issueReportedOn || null,
+        issueStatus || null,
+        issueClosedDate || null,
+        issueClosedBy || null,
+        projectId,
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Issue created successfully",
+      issueId: result.insertId,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error creating issue",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+
+app.put("/api/issues/:id", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { id } = req.params; // Extract issue ID from route parameters
+    const {
+      issueName,
+      issueDescription,
+      issueRaisedBy,
+      issueRaisedDate,
+      assignedTo,
+      issueReportedOn,
+      issueStatus,
+      issueClosedDate,
+      issueClosedBy,
+    } = req.body;
+
+    const updates = [];
+    const values = [];
+
+    // Build dynamic update query
+    if (issueName) {
+      updates.push("issue_name = ?");
+      values.push(issueName);
+    }
+    if (issueDescription) {
+      updates.push("issue_description = ?");
+      values.push(issueDescription);
+    }
+    if (issueRaisedBy !== undefined) {
+      updates.push("issue_raised_by = ?");
+      values.push(issueRaisedBy);
+    }
+    if (issueRaisedDate) {
+      updates.push("issue_raised_date = ?");
+      values.push(issueRaisedDate);
+    }
+    if (assignedTo !== undefined) {
+      updates.push("assigned_to = ?");
+      values.push(assignedTo);
+    }
+    if (issueReportedOn) {
+      updates.push("issue_reported_on = ?");
+      values.push(issueReportedOn);
+    }
+    if (issueStatus) {
+      updates.push("issue_status = ?");
+      values.push(issueStatus);
+    }
+    if (issueClosedDate) {
+      updates.push("issue_closed_date = ?");
+      values.push(issueClosedDate);
+    }
+    if (issueClosedBy !== undefined) {
+      updates.push("issue_closed_by = ?");
+      values.push(issueClosedBy);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No fields to update",
+      });
+    }
+
+    values.push(id);
+
+    const query = `
+      UPDATE issues
+      SET ${updates.join(", ")}
+      WHERE id = ?`;
+
+    const [result] = await connection.execute(query, values);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Issue not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Issue updated successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error updating issue",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+
+app.get("/api/issues/:id", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { id } = req.params; // Issue ID
+
+    const [rows] = await connection.execute(
+      `SELECT 
+        i.id, i.issue_name AS issueName, i.issue_description AS issueDescription,
+        i.issue_raised_by AS issueRaisedBy, i.issue_raised_date AS issueRaisedDate,
+        i.assigned_to AS assignedTo, i.issue_reported_on AS issueReportedOn,
+        i.issue_status AS issueStatus, i.issue_closed_date AS issueClosedDate,
+        i.issue_closed_by AS issueClosedBy, i.project_id AS projectId, 
+        p.project_name AS projectName
+      FROM issues i
+      LEFT JOIN projects p ON i.project_id = p.id
+      WHERE i.id = ?`,
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Issue not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      data: rows[0],
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching issue",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+app.get("/api/projects/:projectId/issues", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { projectId } = req.params; // Project ID
+
+    const [rows] = await connection.execute(
+      `SELECT 
+        i.id, i.issue_name AS issueName, i.issue_description AS issueDescription,
+        i.issue_raised_by AS issueRaisedBy, i.issue_raised_date AS issueRaisedDate,
+        i.assigned_to AS assignedTo, i.issue_reported_on AS issueReportedOn,
+        i.issue_status AS issueStatus, i.issue_closed_date AS issueClosedDate,
+        i.issue_closed_by AS issueClosedBy
+      FROM issues i
+      WHERE i.project_id = ?`,
+      [projectId]
+    );
+
+    res.json({
+      success: true,
+      count: rows.length,
+      data: rows,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching issues for the project",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+app.get("/api/issues", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [rows] = await connection.execute(
+      `SELECT 
+        i.id, i.issue_name AS issueName, i.issue_description AS issueDescription,
+        i.issue_raised_by AS issueRaisedBy, i.issue_raised_date AS issueRaisedDate,
+        i.assigned_to AS assignedTo, i.issue_reported_on AS issueReportedOn,
+        i.issue_status AS issueStatus, i.issue_closed_date AS issueClosedDate,
+        i.issue_closed_by AS issueClosedBy, i.project_id AS projectId, 
+        p.project_name AS projectName
+      FROM issues i
+      LEFT JOIN projects p ON i.project_id = p.id
+      ORDER BY i.issue_raised_date DESC`
+    );
+
+    res.json({
+      success: true,
+      count: rows.length,
+      data: rows,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching all issues",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

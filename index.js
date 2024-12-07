@@ -870,250 +870,6 @@ app.post("/api/projects", async (req, res) => {
   }
 });
 
-app.post("/api/users/signup", async (req, res) => {
-  const connection = await pool.getConnection();
-  try {
-    const {
-      officialName,
-      email,
-      officialPhone,
-      officialDesignation,
-      officialDepartment,
-      password,
-      role,
-    } = req.body;
-
-    if (
-      !email ||
-      !password ||
-      !officialName ||
-      !officialPhone ||
-      !officialDesignation ||
-      !officialDepartment
-    ) {
-      return res
-        .status(400)
-        .json({ success: false, message: "All fields are required" });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const [existingUser] = await connection.execute(
-      "SELECT user_id FROM users WHERE username = ? OR official_email = ?",
-      [email, email]
-    );
-
-    if (existingUser.length > 0) {
-      return res
-        .status(409)
-        .json({ success: false, message: "User already exists" });
-    }
-
-    const [result] = await connection.execute(
-      `INSERT INTO users (
-        official_name, official_email, official_phone, 
-        official_designation, official_department, 
-        username, password, role
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        officialName,
-        email,
-        officialPhone,
-        officialDesignation,
-        officialDepartment,
-        email,
-        hashedPassword,
-        role || 3,
-      ]
-    );
-
-    res.status(201).json({
-      success: true,
-      message: "User created successfully",
-      userId: result.insertId,
-    });
-  } catch (error) {
-    console.error("Error creating user:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error creating user",
-      error: error.message,
-    });
-  } finally {
-    connection.release();
-  }
-});
-
-app.put("/api/users/:id", async (req, res) => {
-  const connection = await pool.getConnection();
-  try {
-    const userId = req.params.id;
-    const updates = [];
-    const values = [];
-
-    const {
-      officialName,
-      officialPhone,
-      officialDesignation,
-      officialDepartment,
-      password,
-      role,
-      status,
-    } = req.body;
-
-    // Build update query dynamically
-    if (officialName) {
-      updates.push("official_name = ?");
-      values.push(officialName);
-    }
-    if (officialPhone) {
-      updates.push("official_phone = ?");
-      values.push(officialPhone);
-    }
-    if (officialDesignation) {
-      updates.push("official_designation = ?");
-      values.push(officialDesignation);
-    }
-    if (officialDepartment) {
-      updates.push("official_department = ?");
-      values.push(officialDepartment);
-    }
-    if (role !== undefined) {
-      updates.push("role = ?");
-      values.push(role);
-    }
-    if (status !== undefined) {
-      updates.push("status = ?");
-      values.push(status);
-    }
-    if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      updates.push("password = ?");
-      values.push(hashedPassword);
-    }
-
-    updates.push("updated_at = ?");
-    values.push(new Date());
-
-    // Add userId to values array
-    values.push(userId);
-
-    const updateQuery = `
-      UPDATE users 
-      SET ${updates.join(", ")}
-      WHERE user_id = ?`;
-
-    const [result] = await connection.execute(updateQuery, values);
-
-    if (result.affectedRows === 0) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
-    }
-
-    res.json({
-      success: true,
-      message: "User updated successfully",
-    });
-  } catch (error) {
-    console.error("Error updating user:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error updating user",
-      error: error.message,
-    });
-  } finally {
-    connection.release();
-  }
-});
-
-// Get single user by ID
-app.get("/api/users/:id", async (req, res) => {
-  const connection = await pool.getConnection();
-  try {
-    const [user] = await connection.execute(
-      `SELECT 
-        user_id, official_name, official_email, official_phone,
-        official_designation, official_department, username,
-        role, status, created_at, updated_at
-       FROM users 
-       WHERE user_id = ?`,
-      [req.params.id]
-    );
-
-    if (!user.length) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
-    }
-
-    res.json(user[0]);
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error fetching user",
-      error: error.message,
-    });
-  } finally {
-    connection.release();
-  }
-});
-
-// Get all users with filters
-app.get("/api/users", async (req, res) => {
-  const connection = await pool.getConnection();
-  try {
-    const { department, role, departmentId, status } = req.query;
-    let conditions = [];
-    let values = [];
-
-    if (department) {
-      conditions.push("official_department = ?");
-      values.push(department);
-    }
-    if (role) {
-      conditions.push("role = ?");
-      values.push(role);
-    }
-    if (departmentId) {
-      conditions.push("department_id = ?");
-      values.push(departmentId);
-    }
-    if (status !== undefined) {
-      conditions.push("status = ?");
-      values.push(status);
-    }
-
-    const whereClause = conditions.length
-      ? `WHERE ${conditions.join(" AND ")}`
-      : "";
-
-    const [users] = await connection.execute(
-      `SELECT 
-        user_id, official_name, official_email, official_phone,
-        official_designation, official_department, username,
-        role, status, created_at, updated_at
-       FROM users 
-       ${whereClause}
-       ORDER BY created_at DESC`,
-      values
-    );
-
-    res.json({
-      success: true,
-      count: users.length,
-      data: users,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error fetching users",
-      error: error.message,
-    });
-  } finally {
-    connection.release();
-  }
-});
 
 // Project Status Statistics
 app.get("/api/stats/project-status", async (req, res) => {
@@ -1519,6 +1275,276 @@ app.put("/api/entities/:id", async (req, res) => {
   }
 });
 
+
+//User API
+app.post("/api/users", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const {
+      userName,
+      userEmail,
+      userPhone,
+      userDesignation,
+      userPassword,
+      userRole,
+      entityId,
+      entityName,
+    } = req.body;
+
+    // Validate required fields
+    if (!userName || !userEmail || !userPassword || !entityId || !entityName) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, email, password, entityId and entityName are required",
+      });
+    }
+
+    // Validate password (minimum 8 characters, at least one letter and one number)
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+    if (!passwordRegex.test(userPassword)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Password must be at least 8 characters long, containing at least one letter and one number",
+      });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(userPassword, 10);
+
+    // Insert user into the database
+    const [result] = await connection.execute(
+      `INSERT INTO users (
+        user_name, user_email, user_phone, user_designation, 
+        user_password, user_role, entity_id, entity_name, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        userName,
+        userEmail,
+        userPhone || null,
+        userDesignation || null,
+        hashedPassword,
+        userRole || 3, // Default to 3 (User)
+        entityId || null,
+        entityName || null,
+        1, // Default status to active
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "User created successfully",
+      userId: result.insertId,
+    });
+  } catch (error) {
+    console.error("Error creating user:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error creating user",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+app.put("/api/users/:id", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const userId = req.params.id;
+    const {
+      userName,
+      userEmail,
+      userPhone,
+      userDesignation,
+      userPassword,
+      userRole,
+      entityId,
+      entityName,
+      status,
+    } = req.body;
+
+    const updates = [];
+    const values = [];
+
+    if (userName) {
+      updates.push("user_name = ?");
+      values.push(userName);
+    }
+    if (userEmail) {
+      updates.push("user_email = ?");
+      values.push(userEmail);
+    }
+    if (userPhone) {
+      updates.push("user_phone = ?");
+      values.push(userPhone);
+    }
+    if (userDesignation) {
+      updates.push("user_designation = ?");
+      values.push(userDesignation);
+    }
+    if (userPassword) {
+      // Validate password
+      const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      if (!passwordRegex.test(userPassword)) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Password must be at least 8 characters long, containing at least one letter, one number, and one special character",
+        });
+      }
+
+      const hashedPassword = await bcrypt.hash(userPassword, 10);
+      updates.push("user_password = ?");
+      values.push(hashedPassword);
+    }
+    if (userRole !== undefined) {
+      updates.push("user_role = ?");
+      values.push(userRole);
+    }
+    if (entityId !== undefined) {
+      updates.push("entity_id = ?");
+      values.push(entityId);
+    }
+    if (entityName !== undefined) {
+      updates.push("entity_name = ?");
+      values.push(entityName);
+    }
+    if (status !== undefined) {
+      updates.push("status = ?");
+      values.push(status);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No fields to update",
+      });
+    }
+
+    values.push(userId);
+
+    const query = `
+      UPDATE users 
+      SET ${updates.join(", ")} 
+      WHERE id = ?`; 
+
+    const [result] = await connection.execute(query, values);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "User updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating user",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+app.delete("/api/users/:id", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const userId = req.params.id;
+
+    const [result] = await connection.execute(
+      `DELETE FROM users WHERE id = ?`,
+      [userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "User deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error deleting user",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+
+app.get("/api/users", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    // Extract query parameters for filtering
+    const { entityId, status, userRole } = req.body;
+
+    // Initialize conditions and values
+    const conditions = [];
+    const values = [];
+
+    // Add conditions dynamically based on the presence of query parameters
+    if (entityId) {
+      conditions.push("entity_id = ?");
+      values.push(entityId);
+    }
+    if (status) {
+      conditions.push("status = ?");
+      values.push(status);
+    }
+    if (userRole) {
+      conditions.push("user_role = ?");
+      values.push(userRole);
+    }
+
+    // Build the WHERE clause dynamically
+    const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+    // Query to fetch users
+    const query = `
+      SELECT 
+        id, user_name AS userName, user_email AS userEmail, user_phone AS userPhone,
+        user_designation AS userDesignation, user_role AS userRole,
+        entity_id AS entityId, entity_name AS entityName, status,
+        created_at AS createdAt, updated_at AS updatedAt
+      FROM users
+      ${whereClause}
+      ORDER BY created_at DESC`;
+
+    const [rows] = await connection.execute(query, values);
+
+    res.json({
+      success: true,
+      count: rows.length,
+      data: rows,
+    });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching users",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

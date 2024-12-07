@@ -223,8 +223,8 @@ app.post("/api/uploadWholeData", async (req, res) => {
     }
 
     // Budget installments
-    if (req.body.budegetInstallment?.length > 0) {
-      for (const budget of req.body.budegetInstallment) {
+    if (req.body.budgetInstallment?.length > 0) {
+      for (const budget of req.body.budgetInstallment) {
         await connection.execute(
           `INSERT INTO budget_installments 
            (installment_amount, installment_expenditure, amount_received_date, 

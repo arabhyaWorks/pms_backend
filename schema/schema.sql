@@ -41,35 +41,35 @@ CREATE TABLE projects (
     parallel_requirements TEXT
 );
 
-CREATE TABLE departments (
-    department_id INT AUTO_INCREMENT PRIMARY KEY,
-    department_name VARCHAR(255) NOT NULL,
-    number_of_projects INT DEFAULT 0,
-    status TINYINT(1) DEFAULT 1
-);
+-- CREATE TABLE departments (
+--     department_id INT AUTO_INCREMENT PRIMARY KEY,
+--     department_name VARCHAR(255) NOT NULL,
+--     number_of_projects INT DEFAULT 0,
+--     status TINYINT(1) DEFAULT 1
+-- );
 
-CREATE TABLE executing_agency (
-    executing_agency_id INT AUTO_INCREMENT PRIMARY KEY,
-    executing_agency_name VARCHAR(255) NOT NULL,
+-- CREATE TABLE executing_agency (
+--     executing_agency_id INT AUTO_INCREMENT PRIMARY KEY,
+--     executing_agency_name VARCHAR(255) NOT NULL,
 
-    status TINYINT(1) DEFAULT 1
-);
+--     status TINYINT(1) DEFAULT 1
+-- );
 
-CREATE TABLE users (
-    user_id INT AUTO_INCREMENT PRIMARY KEY,
-    official_name VARCHAR(255),
-    official_email VARCHAR(255),
-    official_phone VARCHAR(15),
-    official_designation VARCHAR(255),
-    official_department VARCHAR(255),
-    username VARCHAR(255) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    role TINYINT(1), -- 1 for Admin, 2 for Manager, 3 for User
-    department_id INT,
-    status TINYINT(1) DEFAULT 1,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+-- CREATE TABLE users (
+--     user_id INT AUTO_INCREMENT PRIMARY KEY,
+--     official_name VARCHAR(255),
+--     official_email VARCHAR(255),
+--     official_phone VARCHAR(15),
+--     official_designation VARCHAR(255),
+--     official_department VARCHAR(255),
+--     username VARCHAR(255) UNIQUE NOT NULL,
+--     password VARCHAR(255) NOT NULL,
+--     role TINYINT(1), -- 1 for Admin, 2 for Manager, 3 for User
+--     department_id INT,
+--     status TINYINT(1) DEFAULT 1,
+--     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+--     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+-- );
 
 CREATE TABLE meeting_instructions (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -133,7 +133,9 @@ CREATE TABLE milestones (
     milestone_status VARCHAR(255),
     milestone_description TEXT,
     milestone_progress DECIMAL(5, 2),
+    delay_reason VARCHAR(255);
     project_id INT,
+    status TINYINT(1) DEFAULT 1,
     FOREIGN KEY (project_id) REFERENCES projects(id)
 );
 

@@ -1488,7 +1488,6 @@ app.delete("/api/users/:id", async (req, res) => {
   }
 });
 
-
 app.get("/api/users", async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -1539,6 +1538,167 @@ app.get("/api/users", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error fetching users",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+
+
+// Milestones 
+
+app.post("/api/projects/:projectId/milestones", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { projectId } = req.params; // Extract project ID from route parameters
+    const {
+      milestoneName,
+      milestoneFromDate,
+      milestoneCompletionDate,
+      milestoneActualCompletionDate,
+      milestoneStatus,
+      milestoneDescription,
+      milestoneProgress,
+      delayReason,
+    } = req.body;
+
+    // Validate required fields
+    if (!milestoneName || !milestoneFromDate || !milestoneCompletionDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Milestone name, from date, and completion date are required",
+      });
+    }
+
+    // Insert milestone into the database
+    const [result] = await connection.execute(
+      `INSERT INTO milestones (
+        milestone_name, milestone_from_date, milestone_completion_date,
+        milestone_actual_completion_date, milestone_status, milestone_description,
+        milestone_progress, delay_reason, project_id, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        milestoneName,
+        milestoneFromDate,
+        milestoneCompletionDate,
+        milestoneActualCompletionDate || null,
+        milestoneStatus || null,
+        milestoneDescription || null,
+        milestoneProgress || null,
+        delayReason || null,
+        projectId,
+        1, // Default status to active
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Milestone created successfully",
+      milestoneId: result.insertId,
+    });
+  } catch (error) {
+    console.error("Error creating milestone:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error creating milestone",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+app.put("/api/milestones/:milestoneId", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { milestoneId } = req.params; // Extract milestone ID from route parameters
+    const {
+      milestoneName,
+      milestoneFromDate,
+      milestoneCompletionDate,
+      milestoneActualCompletionDate,
+      milestoneStatus,
+      milestoneDescription,
+      milestoneProgress,
+      delayReason,
+      status,
+    } = req.body;
+
+    const updates = [];
+    const values = [];
+
+    // Build update query dynamically
+    if (milestoneName) {
+      updates.push("milestone_name = ?");
+      values.push(milestoneName);
+    }
+    if (milestoneFromDate) {
+      updates.push("milestone_from_date = ?");
+      values.push(milestoneFromDate);
+    }
+    if (milestoneCompletionDate) {
+      updates.push("milestone_completion_date = ?");
+      values.push(milestoneCompletionDate);
+    }
+    if (milestoneActualCompletionDate) {
+      updates.push("milestone_actual_completion_date = ?");
+      values.push(milestoneActualCompletionDate);
+    }
+    if (milestoneStatus) {
+      updates.push("milestone_status = ?");
+      values.push(milestoneStatus);
+    }
+    if (milestoneDescription) {
+      updates.push("milestone_description = ?");
+      values.push(milestoneDescription);
+    }
+    if (milestoneProgress !== undefined) {
+      updates.push("milestone_progress = ?");
+      values.push(milestoneProgress);
+    }
+    if (delayReason) {
+      updates.push("delay_reason = ?");
+      values.push(delayReason);
+    }
+    if (status !== undefined) {
+      updates.push("status = ?");
+      values.push(status);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No fields to update",
+      });
+    }
+
+    values.push(milestoneId);
+
+    const query = `
+      UPDATE milestones
+      SET ${updates.join(", ")}
+      WHERE id = ?`;
+
+    const [result] = await connection.execute(query, values);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Milestone not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Milestone updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating milestone:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating milestone",
       error: error.message,
     });
   } finally {

@@ -870,7 +870,6 @@ app.post("/api/projects", async (req, res) => {
   }
 });
 
-
 // Project Status Statistics
 app.get("/api/stats/project-status", async (req, res) => {
   const connection = await pool.getConnection();
@@ -1275,7 +1274,6 @@ app.put("/api/entities/:id", async (req, res) => {
   }
 });
 
-
 //User API
 app.post("/api/users", async (req, res) => {
   const connection = await pool.getConnection();
@@ -1300,7 +1298,8 @@ app.post("/api/users", async (req, res) => {
     }
 
     // Validate password (minimum 8 characters, at least one letter and one number)
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    const passwordRegex =
+      /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
     if (!passwordRegex.test(userPassword)) {
       return res.status(400).json({
@@ -1386,7 +1385,8 @@ app.put("/api/users/:id", async (req, res) => {
     }
     if (userPassword) {
       // Validate password
-      const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      const passwordRegex =
+        /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
       if (!passwordRegex.test(userPassword)) {
         return res.status(400).json({
           success: false,
@@ -1428,7 +1428,7 @@ app.put("/api/users/:id", async (req, res) => {
     const query = `
       UPDATE users 
       SET ${updates.join(", ")} 
-      WHERE id = ?`; 
+      WHERE id = ?`;
 
     const [result] = await connection.execute(query, values);
 
@@ -1513,7 +1513,9 @@ app.get("/api/users", async (req, res) => {
     }
 
     // Build the WHERE clause dynamically
-    const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const whereClause = conditions.length
+      ? `WHERE ${conditions.join(" AND ")}`
+      : "";
 
     // Query to fetch users
     const query = `
@@ -1545,9 +1547,7 @@ app.get("/api/users", async (req, res) => {
   }
 });
 
-
-
-// Milestones 
+// Milestones
 app.post("/api/projects/:projectId/milestones", async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -1705,8 +1705,6 @@ app.put("/api/milestones/:milestoneId", async (req, res) => {
   }
 });
 
-
-
 // Budget and UC API
 
 app.post("/api/projects/:projectId/budget-installments", async (req, res) => {
@@ -1830,6 +1828,461 @@ app.put("/api/budget-installments/:id", async (req, res) => {
     connection.release();
   }
 });
+
+// Project Inspection
+
+app.post("/api/projects/:projectId/inspections", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { projectId } = req.params;
+    const {
+      inspectionDate,
+      officialName,
+      officialEmail,
+      officialPhone,
+      officialDesignation,
+      officialDepartment,
+      inspectionType,
+      inspectionInstruction,
+      inspectionStatus,
+      inspectionReport,
+    } = req.body;
+
+    if (!inspectionDate || !officialName || !inspectionType) {
+      return res.status(400).json({
+        success: false,
+        message: "Inspection date, official name, and type are required",
+      });
+    }
+
+    const [result] = await connection.execute(
+      `INSERT INTO project_inspections (
+        inspection_date, official_name, official_email, official_phone, 
+        official_designation, official_department, inspection_type, 
+        inspection_instruction, inspection_status, inspection_report, project_id, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        inspectionDate,
+        officialName,
+        officialEmail || null,
+        officialPhone || null,
+        officialDesignation || null,
+        officialDepartment || null,
+        inspectionType,
+        inspectionInstruction || null,
+        inspectionStatus || null,
+        inspectionReport || null,
+        projectId,
+        1,
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Inspection created successfully",
+      inspectionId: result.insertId,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error creating inspection",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+app.put("/api/inspections/:id", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { id } = req.params;
+    const {
+      inspectionDate,
+      officialName,
+      officialEmail,
+      officialPhone,
+      officialDesignation,
+      officialDepartment,
+      inspectionType,
+      inspectionInstruction,
+      inspectionStatus,
+      inspectionReport,
+      status,
+    } = req.body;
+
+    const updates = [];
+    const values = [];
+
+    if (inspectionDate) {
+      updates.push("inspection_date = ?");
+      values.push(inspectionDate);
+    }
+    if (officialName) {
+      updates.push("official_name = ?");
+      values.push(officialName);
+    }
+    if (officialEmail) {
+      updates.push("official_email = ?");
+      values.push(officialEmail);
+    }
+    if (officialPhone) {
+      updates.push("official_phone = ?");
+      values.push(officialPhone);
+    }
+    if (officialDesignation) {
+      updates.push("official_designation = ?");
+      values.push(officialDesignation);
+    }
+    if (officialDepartment) {
+      updates.push("official_department = ?");
+      values.push(officialDepartment);
+    }
+    if (inspectionType) {
+      updates.push("inspection_type = ?");
+      values.push(inspectionType);
+    }
+    if (inspectionInstruction) {
+      updates.push("inspection_instruction = ?");
+      values.push(inspectionInstruction);
+    }
+    if (inspectionStatus) {
+      updates.push("inspection_status = ?");
+      values.push(inspectionStatus);
+    }
+    if (inspectionReport) {
+      updates.push("inspection_report = ?");
+      values.push(inspectionReport);
+    }
+    if (status !== undefined) {
+      updates.push("status = ?");
+      values.push(status);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No fields to update",
+      });
+    }
+
+    values.push(id);
+
+    const query = `
+      UPDATE project_inspections 
+      SET ${updates.join(", ")}
+      WHERE id = ?`;
+
+    const [result] = await connection.execute(query, values);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Inspection not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Inspection updated successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error updating inspection",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+// Project Essential Test
+
+app.post("/api/projects/:projectId/tests", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { projectId } = req.params;
+    const {
+      testName,
+      dateOfSampleCollection,
+      samplingAuthority,
+      sampleTestLabName,
+      sampleTestReport,
+      sampleCollectionSiteImages,
+    } = req.body;
+
+    if (!testName || !dateOfSampleCollection) {
+      return res.status(400).json({
+        success: false,
+        message: "Test name and date of sample collection are required",
+      });
+    }
+
+    const [result] = await connection.execute(
+      `INSERT INTO project_essential_tests (
+        test_name, date_of_sample_collection, sampling_authority, 
+        sample_test_lab_name, sample_test_report, sample_collection_site_images, 
+        project_id, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        testName,
+        dateOfSampleCollection,
+        samplingAuthority || null,
+        sampleTestLabName || null,
+        sampleTestReport || null,
+        sampleCollectionSiteImages
+          ? JSON.stringify(sampleCollectionSiteImages)
+          : null,
+        projectId,
+        1,
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Test created successfully",
+      testId: result.insertId,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error creating test",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+app.put("/api/tests/:id", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { id } = req.params;
+    const {
+      testName,
+      dateOfSampleCollection,
+      samplingAuthority,
+      sampleTestLabName,
+      sampleTestReport,
+      sampleCollectionSiteImages,
+      status,
+    } = req.body;
+
+    const updates = [];
+    const values = [];
+
+    if (testName) {
+      updates.push("test_name = ?");
+      values.push(testName);
+    }
+    if (dateOfSampleCollection) {
+      updates.push("date_of_sample_collection = ?");
+      values.push(dateOfSampleCollection);
+    }
+    if (samplingAuthority) {
+      updates.push("sampling_authority = ?");
+      values.push(samplingAuthority);
+    }
+    if (sampleTestLabName) {
+      updates.push("sample_test_lab_name = ?");
+      values.push(sampleTestLabName);
+    }
+    if (sampleTestReport) {
+      updates.push("sample_test_report = ?");
+      values.push(sampleTestReport);
+    }
+    if (sampleCollectionSiteImages) {
+      updates.push("sample_collection_site_images = ?");
+      values.push(JSON.stringify(sampleCollectionSiteImages));
+    }
+    if (status !== undefined) {
+      updates.push("status = ?");
+      values.push(status);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No fields to update",
+      });
+    }
+
+    values.push(id);
+
+    const query = `
+      UPDATE project_essential_tests
+      SET ${updates.join(", ")}
+      WHERE id = ?`;
+
+    const [result] = await connection.execute(query, values);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Test not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Test updated successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error updating test",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+app.post("/api/projects/:projectId/gallery", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { projectId } = req.params;
+    const {
+      image,
+      imageDescription,
+      latitude,
+      longitude,
+      elevation,
+      accuracy,
+      time,
+    } = req.body;
+
+    if (!image || !time) {
+      return res.status(400).json({
+        success: false,
+        message: "Image and time are required",
+      });
+    }
+
+    const [result] = await connection.execute(
+      `INSERT INTO project_gallery (
+        image, image_description, latitude, longitude, elevation, 
+        accuracy, time, project_id, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        image,
+        imageDescription || null,
+        latitude || null,
+        longitude || null,
+        elevation || null,
+        accuracy || null,
+        time,
+        projectId,
+        1,
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Gallery entry created successfully",
+      galleryId: result.insertId,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error creating gallery entry",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+app.put("/api/gallery/:id", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { id } = req.params;
+    const {
+      image,
+      imageDescription,
+      latitude,
+      longitude,
+      elevation,
+      accuracy,
+      time,
+      status,
+    } = req.body;
+
+    const updates = [];
+    const values = [];
+
+    if (image) {
+      updates.push("image = ?");
+      values.push(image);
+    }
+    if (imageDescription) {
+      updates.push("image_description = ?");
+      values.push(imageDescription);
+    }
+    if (latitude !== undefined) {
+      updates.push("latitude = ?");
+      values.push(latitude);
+    }
+    if (longitude !== undefined) {
+      updates.push("longitude = ?");
+      values.push(longitude);
+    }
+    if (elevation !== undefined) {
+      updates.push("elevation = ?");
+      values.push(elevation);
+    }
+    if (accuracy !== undefined) {
+      updates.push("accuracy = ?");
+      values.push(accuracy);
+    }
+    if (time) {
+      updates.push("time = ?");
+      values.push(time);
+    }
+    if (status !== undefined) {
+      updates.push("status = ?");
+      values.push(status);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No fields to update",
+      });
+    }
+
+    values.push(id);
+
+    const query = `
+      UPDATE project_gallery
+      SET ${updates.join(", ")}
+      WHERE id = ?`;
+
+    const [result] = await connection.execute(query, values);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Gallery entry not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Gallery entry updated successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error updating gallery entry",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

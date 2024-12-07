@@ -96,6 +96,7 @@ CREATE TABLE project_inspections (
     inspection_status VARCHAR(255),
     inspection_report VARCHAR(255),
     project_id INT,
+    status TINYINT(1) DEFAULT 1,
     FOREIGN KEY (project_id) REFERENCES projects(id)
 );
 
@@ -108,6 +109,7 @@ CREATE TABLE project_essential_tests (
     sample_test_report VARCHAR(255),
     sample_collection_site_images JSON,
     project_id INT,
+    status TINYINT(1) DEFAULT 1,
     FOREIGN KEY (project_id) REFERENCES projects(id)
 );
 
@@ -121,6 +123,7 @@ CREATE TABLE project_gallery (
     accuracy DECIMAL(8, 2),
     time DATETIME,
     project_id INT,
+    status TINYINT(1) DEFAULT 1,
     FOREIGN KEY (project_id) REFERENCES projects(id)
 );
 

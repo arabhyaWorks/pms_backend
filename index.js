@@ -1548,7 +1548,6 @@ app.get("/api/users", async (req, res) => {
 
 
 // Milestones 
-
 app.post("/api/projects/:projectId/milestones", async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -1699,6 +1698,132 @@ app.put("/api/milestones/:milestoneId", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error updating milestone",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+
+
+// Budget and UC API
+
+app.post("/api/projects/:projectId/budget-installments", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { projectId } = req.params; // Extract project ID from the route parameters
+    const {
+      installmentAmount,
+      installmentExpenditure,
+      amountReceivedDate,
+      utilizationCertificate,
+    } = req.body;
+
+    // Validate required fields
+    if (!installmentAmount || !amountReceivedDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Installment amount and received date are required",
+      });
+    }
+
+    // Insert budget installment into the database
+    const [result] = await connection.execute(
+      `INSERT INTO budget_installments (
+        installment_amount, installment_expenditure, amount_received_date,
+        utilization_certificate, project_id
+      ) VALUES (?, ?, ?, ?, ?)`,
+      [
+        installmentAmount,
+        installmentExpenditure || 0.0, // Default expenditure to 0 if not provided
+        amountReceivedDate,
+        utilizationCertificate || null,
+        projectId,
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Budget installment created successfully",
+      budgetInstallmentId: result.insertId,
+    });
+  } catch (error) {
+    console.error("Error creating budget installment:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error creating budget installment",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+app.put("/api/budget-installments/:id", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { id } = req.params; // Extract budget installment ID from route parameters
+    const {
+      installmentAmount,
+      installmentExpenditure,
+      amountReceivedDate,
+      utilizationCertificate,
+    } = req.body;
+
+    const updates = [];
+    const values = [];
+
+    // Build update query dynamically
+    if (installmentAmount !== undefined) {
+      updates.push("installment_amount = ?");
+      values.push(installmentAmount);
+    }
+    if (installmentExpenditure !== undefined) {
+      updates.push("installment_expenditure = ?");
+      values.push(installmentExpenditure);
+    }
+    if (amountReceivedDate) {
+      updates.push("amount_received_date = ?");
+      values.push(amountReceivedDate);
+    }
+    if (utilizationCertificate) {
+      updates.push("utilization_certificate = ?");
+      values.push(utilizationCertificate);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No fields to update",
+      });
+    }
+
+    values.push(id);
+
+    const query = `
+      UPDATE budget_installments
+      SET ${updates.join(", ")}
+      WHERE id = ?`;
+
+    const [result] = await connection.execute(query, values);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Budget installment not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Budget installment updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating budget installment:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating budget installment",
       error: error.message,
     });
   } finally {

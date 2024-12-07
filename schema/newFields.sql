@@ -18,5 +18,5 @@
 -- ALTER TABLE milestones
 -- ADD COLUMN delay_reason VARCHAR(255);
 
-ALTER TABLE milestones
+ALTER TABLE budget_installments
 ADD COLUMN status TINYINT(1) DEFAULT 1 ;

@@ -619,24 +619,28 @@ app.get("/api/projects", async (req, res) => {
           p.scheme, p.project_sanction_date as projectSanctionDate,
           p.project_financial_approval_go_number as projectFinancialApprovalGoNumber,
           p.project_financial_approval_date as projectFinancialApprovalDate,
-          p.actual_project_start_date as actualProjectStartDate,
-          p.project_completion_date as projectCompletionDate,
-          p.revised_project_sanction_date as revisedProjectSanctionDate,
-          p.revised_project_completion_date as revisedProjectCompletionDate,
-          p.estimated_completion_date as estimatedCompletionDate,
-          p.actual_completion_date as actualCompletionDate,
-          p.work_order_formation_date as workOrderFormationDate,
-          p.land_handover_date as landHandoverDate,
-          p.last_updated_date as lastUpdatedDate,
-          p.last_updated_date_on_cmis as lastUpdatedDateOnCmis,
-          p.total_approved_budget as totalApprovedBudget,
-          p.revised_project_cost as revisedProjectCost,
+
           p.approved_project_cost as approvedProjectCost,
           p.contract_date as contractDate,
           p.contract_cost as contractCost,
           p.total_released_funds as totalReleasedFunds,
           p.total_expenditure as totalExpenditure,
-          p.delay_reason as delayReason
+
+
+          p.actual_project_start_date as actualProjectStartDate,
+          p.project_completion_date as projectCompletionDate,
+          p.delay_reason as delayReason,
+          p.land_handover_date as landHandoverDate,
+          p.last_updated_date_on_cmis as lastUpdatedDateOnCmis,
+          p.last_updated_date as lastUpdatedDate,
+
+          p.revised_project_completion_date as revisedProjectCompletionDate,
+          p.revised_project_sanction_date as revisedProjectSanctionDate,
+          p.estimated_completion_date as estimatedCompletionDate,
+          p.actual_completion_date as actualCompletionDate,
+          p.work_order_formation_date as workOrderFormationDate,
+          p.total_approved_budget as totalApprovedBudget,
+          p.revised_project_cost as revisedProjectCost
         FROM projects p
       `);
 
@@ -723,8 +727,8 @@ app.get("/api/projects", async (req, res) => {
           ...project,
           lastMonthPhysicalProgress: lastMonthProgress,
           currentMonthPhysicalProgress: currentMonthProgress,
-          // totalReleasedFunds: budgetSummary[0].totalReleasedFunds,
-          // totalExpenditure: budgetSummary[0].totalExpenditure,
+          totalReleasedFundsBudgetInstallment: budgetSummary[0].totalReleasedFunds,
+          totalExpenditureBudgetInstallment: budgetSummary[0].totalExpenditure,
           lastFundReceivedDate: budgetSummary[0].lastFundReceivedDate,
           utilizationCertificateSubmissionDate:
             budgetSummary[0].utilizationCertificateSubmissionDate,

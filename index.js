@@ -1282,9 +1282,22 @@ app.put("/api/entities/:id", async (req, res) => {
 app.get("/api/entities", async (req, res) => {
   const connection = await pool.getConnection();
   try {
-    const [rows] = await connection.execute(
-      `SELECT id, entity_name, entity_type, status FROM entity`
-    );
+    const { entityType, status } = req.body;
+
+    let query = `SELECT id, entity_name, entity_type, status FROM entity WHERE 1=1`;
+    const queryParams = [];
+
+    if (entityType) {
+      query += ` AND entity_type = ?`;
+      queryParams.push(entityType);
+    }
+
+    if (status) {
+      query += ` AND status = ?`;
+      queryParams.push(status);
+    }
+
+    const [rows] = await connection.execute(query, queryParams);
 
     if (rows.length === 0) {
       return res.status(404).json({
@@ -1298,7 +1311,7 @@ app.get("/api/entities", async (req, res) => {
       data: rows,
     });
   } catch (error) {
-    console.error("Error fetching all entities:", error);
+    console.error("Error fetching entities with filters:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching entities",
@@ -1308,7 +1321,6 @@ app.get("/api/entities", async (req, res) => {
     connection.release();
   }
 });
-
 
 app.delete("/api/entities/:id", async (req, res) => {
   const connection = await pool.getConnection();
@@ -1342,7 +1354,6 @@ app.delete("/api/entities/:id", async (req, res) => {
     connection.release();
   }
 });
-
 
 //User API
 app.post("/api/users", async (req, res) => {

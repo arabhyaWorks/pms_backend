@@ -1,0 +1,119 @@
+{
+    "projectName": "भदोही के सी0एच0सी0 भदोही में 50 शैय्या फील्ड हास्पीटल (ई0सी0आर0पी0-2)",
+    "description": "भदोही के सी0एच0सी0 भदोही में 50 शैय्या फील्ड हास्पीटल (ई0सी0आर0पी0-2)",
+    "projectStatus": "2",
+    "projectGoal": "भदोही के सी0एच0सी0 भदोही में 50 शैय्या फील्ड हास्पीटल (ई0सी0आर0पी0-2)",
+    "projectDepartment": "चिकित्सा स्वास्थ्य एवं परिवार कल्याण",
+    "departmentId": 6,
+    "executingAgency": "उ.प्र. राज्य निर्माण सहकारी संध लि. लखनऊ (यू.पी.आर.एन.एस.एस.)",
+    "executingAgencyId": 20,
+    "scheme": "Others",
+    "fundSanctionedBy": "Both Central & State Government",
+    "concernedOfficialName": "",
+    "concernedProjectManager": "",
+    "projectSanctionDate": "2024-12-19",
+    "projectFinancialApprovalGoNumber": "----------GO NUMBER --------",
+    "projectFinancialApprovalDate": "2024-12-11",
+    "actualProjectStartDate": "2024-12-12",
+    "projectCompletionDate": "2024-12-13",
+    "revisedProjectSanctionDate": "2024-12-18",
+    "revisedProjectCompletionDate": "2024-12-12",
+    "estimatedCompletionDate": "",
+    "actualCompletionDate": "2024-12-25",
+    "workOrderFormationDate": "2024-12-24",
+    "landHandoverDate": "2024-12-25",
+    "contactInformation": 1,
+    "totalApprovedBudget": "",
+    "revisedProjectCost": "",
+    "approvedProjectCost": "3.05",
+    "contractCost": "2.22",
+    "totalReleasedFunds": "2.88",
+    "totalExpenditure": "2.16",
+    "contractDate": "2024-12-11",
+    "delayReason": "this is the delay reason",
+    "meetingInstructions": [
+        {
+            "description": null,
+            "date": null,
+            "compliance": null,
+            "feedback": "अगस्त माह 2024 में धनराशि रू0 1.3611 प्राप्त। (जी-1) भू-तल एवं प्रथम तल का टाइल्स तथा फायर फायटिंग का कार्य प्रगति पर।"
+        }
+    ],
+    "mileStones": [
+        {
+            "milestoneName": "Phase 1 - Infrastructure Setup",
+            "milestoneFromDate": "2024-01-31T18:30:00.000Z",
+            "milestoneCompletionDate": "2024-04-29T18:30:00.000Z",
+            "milestoneActualCompletionDate": null,
+            "milestoneStatus": "In Progress",
+            "milestoneDescription": "Setup of basic smart city infrastructure",
+            "milestoneProgress": "35.50"
+        }
+    ],
+    issues: [
+        {
+          issueName: "Network Coverage Gap",
+          issueDescription: "Signal strength issues in northern sector",
+          issueRaisedBy: "Network Team",
+          issueRaisedDate: "2024-03-04T18:30:00.000Z",
+          assignedTo: "Infrastructure Team",
+          issueReportedOn: "2024-03-04T18:30:00.000Z",
+          issueStatus: "In Progress",
+          issueClosedDate: null,
+          issueClosedBy: null,
+        },
+    ],
+      budgetInstallment: [
+        {
+          installmentAmount: "10000000.00",
+          installmentExpenditure: "3500000.00",
+          amountReceivedDate: "2024-01-31T18:30:00.000Z",
+          utilizationCertificate: "UC_Q1_2024.pdf",
+        },
+    ],
+
+      meetingInstructions: [
+        {
+          description: "Complete initial infrastructure assessment",
+          date: "2024-02-14T18:30:00.000Z",
+          compliance: "Completed on schedule",
+    
+          feedback: "Assessment report submitted and approved",
+        },
+    ],
+      projectInspection: [
+        {
+          inspectionDate: "2024-02-29T18:30:00.000Z",
+          officialName: "Dr. Arun Verma",
+          officialEmail: "arun.verma@smartcity.gov.in",
+          officialPhone: "+91-9876543212",
+          officialDesignation: "Technical Director",
+          officialDepartment: "Urban Development",
+          inspectionType: "Quarterly Review",
+          inspectionInstruction: "Review IoT sensor deployment progress",
+          inspectionStatus: "Completed",
+          inspectionReport: "Q1_2024_Review.pdf",
+        },
+    ],
+      projectEssentialTest: [
+        {
+          testName: "Network Infrastructure Test",
+          dateOfSampleCollection: "2024-03-09T18:30:00.000Z",
+          samplingAuthority: "Tech Verification Team",
+          sampleTestLabName: "Digital Infrastructure Lab",
+          sampleTestReport: "network_test_report.pdf",
+          sampleCollectionSiteImages: [],
+        },
+    ],
+      projectGallery: [
+        {
+          image: "site_progress_1.jpg",
+          imageDescription: "IoT sensor installation at major junction",
+          latitude: "28.61390000",
+          longitude: "77.20900000",
+          elevation: "216.50",
+          accuracy: "3.50",
+          time: "2024-03-15T04:00:00.000Z",
+        },
+    ],
+}

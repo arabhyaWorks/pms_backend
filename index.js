@@ -3,6 +3,7 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const pdfkit = require("pdfkit");
 const fs = require("fs");
@@ -17,14 +18,17 @@ app.use(bodyParser.json());
 
 const mysql = require("mysql2/promise");
 const pool = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "animesh1234",
-  database: "projectManagementSystem",
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
   waitForConnections: true,
   connectionLimit: 10,
 });
 
+app.get("/", (req, res) => {
+  res.send("Hello World!");
+});
 app.post("/api/uploadWholeData", async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -258,6 +262,270 @@ app.post("/api/uploadWholeData", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error uploading project data",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+app.put("/api/updateWholeData/:projectId", async (req, res) => {
+  const connection = await pool.getConnection();
+  const projectId = req.params.projectId;
+
+  try {
+    await connection.beginTransaction();
+
+    // Update main project data
+    await connection.execute(
+      `
+      UPDATE projects SET
+        project_name = ?, project_status = ?, project_goal = ?, 
+        project_department = ?, department_id = ?, executing_agency = ?, 
+        executing_agency_id = ?, scheme = ?, description = ?, fund_sanctioned_by = ?, 
+        concerned_official_name = ?, concerned_project_manager = ?, project_sanction_date = ?, 
+        project_financial_approval_go_number = ?, project_financial_approval_date = ?, 
+        actual_project_start_date = ?, project_completion_date = ?, revised_project_sanction_date = ?, 
+        revised_project_completion_date = ?, estimated_completion_date = ?, actual_completion_date = ?, 
+        work_order_formation_date = ?, land_handover_date = ?, contact_information = ?, 
+        total_approved_budget = ?, revised_project_cost = ?, approved_project_cost = ?, 
+        contract_date = ?, contract_cost = ?, total_released_funds = ?, 
+        total_expenditure = ?, delay_reason = ?
+      WHERE id = ?
+      `,
+      [
+        req.body.projectName || null,
+        req.body.projectStatus || null,
+        req.body.projectGoal || null,
+        req.body.projectDepartment || null,
+        req.body.departmentId || null,
+        req.body.executingAgency || null,
+        req.body.executingAgencyId || null,
+        req.body.scheme || null,
+        req.body.description || null,
+        req.body.fundSanctionedBy || null,
+        req.body.concernedOfficialName || null,
+        req.body.concernedProjectManager || null,
+        req.body.projectSanctionDate || null,
+        req.body.projectFinancialApprovalGoNumber || null,
+        req.body.projectFinancialApprovalDate || null,
+        req.body.actualProjectStartDate || null,
+        req.body.projectCompletionDate || null,
+        req.body.revisedProjectSanctionDate || null,
+        req.body.revisedProjectCompletionDate || null,
+        req.body.estimatedCompletionDate || null,
+        req.body.actualCompletionDate || null,
+        req.body.workOrderFormationDate || null,
+        req.body.landHandoverDate || null,
+        req.body.contactInformation || null,
+        req.body.totalApprovedBudget || null,
+        req.body.revisedProjectCost || null,
+        req.body.approvedProjectCost || null,
+        req.body.contractDate || null,
+        req.body.contractCost || null,
+        req.body.totalReleasedFunds || null,
+        req.body.totalExpenditure || null,
+        req.body.delayReason || null,
+        projectId,
+      ]
+    );
+
+    // Update related entities: delete old and insert new data
+    const relatedTables = [
+      "meeting_instructions",
+      "project_inspections",
+      "project_essential_tests",
+      "project_gallery",
+      "milestones",
+      "issues",
+      "budget_installments",
+    ];
+
+    for (const table of relatedTables) {
+      await connection.execute(`DELETE FROM ${table} WHERE project_id = ?`, [
+        projectId,
+      ]);
+    }
+
+    // Insert new meeting instructions
+    if (req.body.meetingInstructions?.length > 0) {
+      for (const instruction of req.body.meetingInstructions) {
+        await connection.execute(
+          `
+          INSERT INTO meeting_instructions (description, date, compliance, project_id, feedback)
+          VALUES (?, ?, ?, ?, ?)
+          `,
+          [
+            instruction.description || null,
+            instruction.date || null,
+            instruction.compliance || null,
+            projectId,
+            instruction.feedback || null,
+          ]
+        );
+      }
+    }
+
+    // Insert new project inspections
+    if (req.body.projectInspection?.length > 0) {
+      for (const inspection of req.body.projectInspection) {
+        await connection.execute(
+          `
+          INSERT INTO project_inspections (
+            inspection_date, official_name, official_email, official_phone, 
+            official_designation, official_department, inspection_type, 
+            inspection_instruction, inspection_status, inspection_report, project_id
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `,
+          [
+            inspection.inspectionDate || null,
+            inspection.officialName || null,
+            inspection.officialEmail || null,
+            inspection.officialPhone || null,
+            inspection.officialDesignation || null,
+            inspection.officialDepartment || null,
+            inspection.inspectionType || null,
+            inspection.inspectionInstruction || null,
+            inspection.inspectionStatus || null,
+            inspection.inspectionReport || null,
+            projectId,
+          ]
+        );
+      }
+    }
+
+    // Insert new project essential tests
+    if (req.body.projectEssentialTest?.length > 0) {
+      for (const test of req.body.projectEssentialTest) {
+        await connection.execute(
+          `
+          INSERT INTO project_essential_tests (
+            test_name, date_of_sample_collection, sampling_authority, 
+            sample_test_lab_name, sample_test_report, sample_collection_site_images, project_id
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)
+          `,
+          [
+            test.testName || null,
+            test.dateOfSampleCollection || null,
+            test.samplingAuthority || null,
+            test.sampleTestLabName || null,
+            test.sampleTestReport || null,
+            test.sampleCollectionSiteImages
+              ? JSON.stringify(test.sampleCollectionSiteImages)
+              : null,
+            projectId,
+          ]
+        );
+      }
+    }
+
+    // Insert new project gallery
+    if (req.body.projectGallery?.length > 0) {
+      for (const gallery of req.body.projectGallery) {
+        await connection.execute(
+          `
+          INSERT INTO project_gallery (
+            image, image_description, latitude, longitude, elevation, accuracy, time, project_id
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `,
+          [
+            gallery.image || null,
+            gallery.imageDescription || null,
+            gallery.latitude || null,
+            gallery.longitude || null,
+            gallery.elevation || null,
+            gallery.accuracy || null,
+            gallery.time || null,
+            projectId,
+          ]
+        );
+      }
+    }
+
+    // Insert new milestones
+    if (req.body.mileStones?.length > 0) {
+      for (const milestone of req.body.mileStones) {
+        await connection.execute(
+          `
+          INSERT INTO milestones (
+            milestone_name, milestone_from_date, milestone_completion_date, 
+            milestone_actual_completion_date, milestone_status, milestone_description, 
+            milestone_progress, project_id
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `,
+          [
+            milestone.milestoneName || null,
+            milestone.milestoneFromDate || null,
+            milestone.milestoneCompletionDate || null,
+            milestone.milestoneActualCompletionDate || null,
+            milestone.milestoneStatus || null,
+            milestone.milestoneDescription || null,
+            milestone.milestoneProgress || null,
+            projectId,
+          ]
+        );
+      }
+    }
+
+    // Insert new issues
+    if (req.body.issues?.length > 0) {
+      for (const issue of req.body.issues) {
+        await connection.execute(
+          `
+          INSERT INTO issues (
+            issue_name, issue_description, issue_raised_by, issue_raised_date, 
+            assigned_to, issue_reported_on, issue_status, issue_closed_date, 
+            issue_closed_by, project_id
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `,
+          [
+            issue.issueName || null,
+            issue.issueDescription || null,
+            issue.issueRaisedBy || null,
+            issue.issueRaisedDate || null,
+            issue.assignedTo || null,
+            issue.issueReportedOn || null,
+            issue.issueStatus || null,
+            issue.issueClosedDate || null,
+            issue.issueClosedBy || null,
+            projectId,
+          ]
+        );
+      }
+    }
+
+    // Insert new budget installments
+    if (req.body.budgetInstallment?.length > 0) {
+      for (const budget of req.body.budgetInstallment) {
+        await connection.execute(
+          `
+          INSERT INTO budget_installments (
+            installment_amount, installment_expenditure, amount_received_date, 
+            utilization_certificate, project_id
+          ) VALUES (?, ?, ?, ?, ?)
+          `,
+          [
+            budget.installmentAmount || null,
+            budget.installmentExpenditure || null,
+            budget.amountReceivedDate || null,
+            budget.utilizationCertificate || null,
+            projectId,
+          ]
+        );
+      }
+    }
+
+    await connection.commit();
+    res.status(200).json({
+      success: true,
+      message: "Project data updated successfully",
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error("Error updating project data:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating project data",
       error: error.message,
     });
   } finally {
@@ -727,7 +995,8 @@ app.get("/api/projects", async (req, res) => {
           ...project,
           lastMonthPhysicalProgress: lastMonthProgress,
           currentMonthPhysicalProgress: currentMonthProgress,
-          totalReleasedFundsBudgetInstallment: budgetSummary[0].totalReleasedFunds,
+          totalReleasedFundsBudgetInstallment:
+            budgetSummary[0].totalReleasedFunds,
           totalExpenditureBudgetInstallment: budgetSummary[0].totalExpenditure,
           lastFundReceivedDate: budgetSummary[0].lastFundReceivedDate,
           utilizationCertificateSubmissionDate:
@@ -1625,6 +1894,97 @@ app.get("/api/users", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error fetching users",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+app.post("/api/login", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { userEmail, userPassword } = req.body;
+
+    // Validate input fields
+    if (!userEmail || !userPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
+    }
+
+    // Fetch user by email
+    const [rows] = await connection.execute(
+      `SELECT 
+        id, user_name AS userName, user_email AS userEmail, user_password AS hashedPassword,
+        user_role AS userRole, entity_id AS entityId, entity_name AS entityName, status 
+      FROM users 
+      WHERE user_email = ?`,
+      [userEmail]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const user = rows[0];
+
+    // Check if the account is active
+    if (user.status !== 1) {
+      return res.status(403).json({
+        success: false,
+        message: "Account is inactive. Please contact the administrator.",
+      });
+    }
+
+    // Compare passwords
+    const isPasswordValid = await bcrypt.compare(
+      userPassword,
+      user.hashedPassword
+    );
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      {
+        id: user.id,
+        userName: user.userName,
+        userEmail: user.userEmail,
+        userRole: user.userRole,
+        entityId: user.entityId,
+        entityName: user.entityName,
+      },
+      process.env.JWT_SECRET || "your_jwt_secret_key",
+      { expiresIn: "1d" } // Token expires in 1 day
+    );
+
+    res.json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: {
+        id: user.id,
+        userName: user.userName,
+        userEmail: user.userEmail,
+        userRole: user.userRole,
+        entityId: user.entityId,
+        entityName: user.entityName,
+      },
+    });
+  } catch (error) {
+    console.error("Error during login:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error during login",
       error: error.message,
     });
   } finally {

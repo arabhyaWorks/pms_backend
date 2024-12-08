@@ -1,7 +1,5 @@
 -- CREATE DATABASE IF NOT EXISTS projectManagementSystem;
 -- USE projectManagementSystem;
--- USE sql12750595;
--- USE animesh;
 
 CREATE TABLE projects (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -62,8 +60,8 @@ CREATE TABLE users (
     entity_id INT,
     entity_name VARCHAR(255),
     status TINYINT(1) DEFAULT 1,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 CREATE TABLE meeting_instructions (
@@ -100,7 +98,7 @@ CREATE TABLE project_essential_tests (
     sampling_authority VARCHAR(255),
     sample_test_lab_name VARCHAR(255),
     sample_test_report VARCHAR(255),
-    sample_collection_site_images JSON,
+    sample_collection_site_images TEXT, -- Changed from JSON to TEXT for MySQL 5.5 compatibility
     project_id INT,
     status TINYINT(1) DEFAULT 1,
     FOREIGN KEY (project_id) REFERENCES projects(id)

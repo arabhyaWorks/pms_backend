@@ -1,0 +1,332 @@
+{
+	"info": {
+		"_postman_id": "f222059b-b049-40b0-add7-a512c5a6e340",
+		"name": "PMS",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "40192594"
+	},
+	"item": [
+		{
+			"name": "api/uploadWholeData",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"projectName\": \"Bhadohi Smart City: Sewerage and Water Supply Upgrade\",\n    \"projectStatus\": \"In Progress\",\n    \"projectGoal\": \"Improve urban infrastructure with modern sewerage systems and 24x7 water supply.\",\n    \"projectDepartment\": \"Urban Development\",\n    \"departmentId\": 12,\n    \"executingAgency\": \"Bhadohi Municipal Corporation\",\n    \"executingAgencyId\": 7,\n    \"scheme\": \"AMRUT (Atal Mission for Rejuvenation and Urban Transformation)\",\n    \"description\": \"The project aims to revamp the sewerage system, improve water supply networks, and modernize urban infrastructure for Bhadohi.\",\n    \"fundSanctionedBy\": \"State Urban Development Authority\",\n    \"concernedOfficialName\": \"Mr. Arun Kumar\",\n    \"concernedProjectManager\": \"Ms. Priya Sharma\",\n    \"projectSanctionDate\": \"15-06-2022\",\n    \"projectFinancialApprovalGoNumber\": \"UD/2022/AMRUT/005\",\n    \"projectFinancialApprovalDate\": \"20-06-2022\",\n    \"actualProjectStartDate\": \"01-01-2023\",\n    \"projectCompletionDate\": \"31-12-2025\",\n    \"revisedProjectSanctionDate\": \"15-06-2023\",\n    \"revisedProjectCompletionDate\": \"31-03-2026\",\n    \"estimatedCompletionDate\": \"30-11-2025\",\n    \"actualCompletionDate\": null,\n    \"workOrderFormationDate\": \"10-12-2022\",\n    \"landHandoverDate\": \"15-01-2023\",\n    \"contactInformation\": \"9876543210\",\n    \"lastUpdatedDate\": \"15-02-2024\",\n    \"lastUpdatedDateOnCmis\": \"15-02-2024\",\n    \"projectHandoverDate\": null,\n    \"projectHandoverTo\": null,\n    \"parallelRequirements\": \"Environmental clearance, Traffic diversion planning.\",\n    \"totalApprovedBudget\": \"55000000.00\",\n    \"revisedProjectCost\": \"58000000.00\",\n    \"approvedProjectCost\": \"55000000.00\",\n    \"contractDate\": \"15-12-2022\",\n    \"contractCost\": \"52000000.00\",\n    \"totalReleasedFunds\": \"45000000.00\",\n    \"totalExpenditure\": \"39000000.00\",\n    \"delayReason\": \"Delay in obtaining environmental clearance and land acquisition.\",\n    \"lastMonthPhysicalProgress\": \"70\",\n    \"currentMonthPhysicalProgress\": \"75\",\n    \"lastFundReceivedDate\": \"10-01-2024\",\n    \"utilizationCertificateSubmissionDate\": \"20-02-2024\",\n    \"geoTaggedPhotosLastMonth\": \"https://dummyimage.com/600x400/000/fff&text=LastMonthProgress\",\n    \"geoTaggedPhotosCurrentMonth\": \"https://dummyimage.com/600x400/000/fff&text=CurrentMonthProgress\",\n    \"meetingInstructions\": [\n      {\n        \"description\": \"Review project milestones and progress.\",\n        \"date\": \"20-01-2024\",\n        \"compliance\": \"Completed\",\n        \"feedback\": \"Work is on schedule with minor delays in pipeline laying.\"\n      }\n    ],\n    \"projectInspection\": [\n      {\n        \"inspectionDate\": \"15-01-2024\",\n        \"officialName\": \"Dr. Neha Verma\",\n        \"officialEmail\": \"neha.verma@example.com\",\n        \"officialPhone\": \"9876543211\",\n        \"officialDesignation\": \"Urban Planner\",\n        \"officialDepartment\": \"Urban Development\",\n        \"inspectionType\": \"Environmental\",\n        \"inspectionInstruction\": \"Ensure minimal environmental impact during excavation.\",\n        \"inspectionStatus\": \"Completed\",\n        \"inspectionReport\": \"inspection_report_2024.pdf\"\n      }\n    ],\n    \"projectEssentialTest\": [\n      {\n        \"testName\": \"Water Quality Test\",\n        \"dateOfSampleCollection\": \"10-01-2024\",\n        \"samplingAuthority\": \"State Water Quality Lab\",\n        \"sampleTestLabName\": \"Bhadohi Water Testing Lab\",\n        \"sampleTestReport\": \"water_quality_test_report.pdf\",\n        \"sampleCollectionSiteImages\": [\"https://dummyimage.com/600x400/000/fff&text=Sample1\"]\n      }\n    ],\n    \"projectGallery\": [\n      {\n        \"image\": \"https://dummyimage.com/600x400/000/fff&text=Progress+Image\",\n        \"imageDescription\": \"Sewer pipeline installation in progress.\",\n        \"latitude\": \"25.3949\",\n        \"longitude\": \"82.5709\",\n        \"elevation\": \"210.00\",\n        \"accuracy\": \"3.50\",\n        \"time\": \"15-02-2024\"\n      }\n    ],\n    \"mileStones\": [\n      {\n        \"milestoneName\": \"Excavation Work\",\n        \"milestoneFromDate\": \"15-01-2023\",\n        \"milestoneCompletionDate\": \"30-06-2023\",\n        \"milestoneActualCompletionDate\": \"15-07-2023\",\n        \"milestoneStatus\": \"Completed\",\n        \"milestoneDescription\": \"Excavation work completed for sewer lines.\",\n        \"milestoneProgress\": \"100.00\"\n      },\n      {\n  \n        \"milestoneName\": \"Pipeline Laying\",\n        \"milestoneFromDate\": \"01-08-2023\",\n        \"milestoneCompletionDate\": \"28-02-2024\",\n        \"milestoneActualCompletionDate\": null,\n        \"milestoneStatus\": \"In Progress\",\n        \"milestoneDescription\": \"Laying sewer pipelines across main roads.\",\n        \"milestoneProgress\": \"75.00\"\n      }\n    ],\n    \"issues\": [\n      {\n        \"issueName\": \"Delay in Land Acquisition\",\n        \"issueDescription\": \"Land acquisition process delayed due to legal disputes.\",\n        \"issueRaisedBy\": \"101\",\n        \"issueRaisedDate\": \"15-05-2023\",\n        \"assignedTo\": \"102\",\n        \"issueReportedOn\": \"16-05-2023\",\n        \"issueStatus\": \"Resolved\",\n        \"issueClosedDate\": \"01-07-2023\",\n        \"issueClosedBy\": \"103\"\n      }\n    ],\n    \"budgetInstallment\": [\n      {\n        \"installmentAmount\": \"25000000.00\",\n        \"installmentExpenditure\": \"20000000.00\",\n        \"amountReceivedDate\": \"15-06-2023\",\n        \"utilizationCertificate\": \"uc_2023_june.pdf\"\n      },\n      {\n\n        \"installmentAmount\": \"20000000.00\",\n        \"installmentExpenditure\": \"19000000.00\",\n        \"amountReceivedDate\": \"10-01-2024\",\n        \"utilizationCertificate\": \"uc_2024_january.pdf\"\n      }\n    ]\n  }",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{endpoint}}api/uploadWholeData",
+					"host": [
+						"{{endpoint}}api"
+					],
+					"path": [
+						"uploadWholeData"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/projects/:id",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{endpoint}}api/projects/48",
+					"host": [
+						"{{endpoint}}api"
+					],
+					"path": [
+						"projects",
+						"48"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/projects",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{endpoint}}api/projects/",
+					"host": [
+						"{{endpoint}}api"
+					],
+					"path": [
+						"projects",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/projects",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"projectName\": \"fwefwe\",\n    \"description\": \"\",\n    \"projectStatus\": \"\",\n    \"projectGoal\": \"\",\n    \"projectDepartment\": \"1\",\n    \"departmentId\": \"\",\n    \"executingAgency\": \"5\",\n    \"executingAgencyId\": \"\",\n    \"scheme\": \"3\",\n    \"fundSanctionedBy\": \"\",\n    \"concernedOfficialName\": \"\",\n    \"concernedProjectManager\": \"\",\n    \"projectSanctionDate\": \"\",\n    \"projectFinancialApprovalGoNumber\": \"\",\n    \"projectFinancialApprovalDate\": \"\",\n    \"actualProjectStartDate\": \"\",\n    \"projectCompletionDate\": \"\",\n    \"revisedProjectSanctionDate\": \"\",\n    \"revisedProjectCompletionDate\": \"2024-12-20\",\n    \"estimatedCompletionDate\": \"2024-12-11\",\n    \"actualCompletionDate\": \"2024-12-27\",\n    \"workOrderFormationDate\": \"2024-12-23\",\n    \"landHandoverDate\": \"2024-12-27\",\n    \"contactInformation\": 1,\n    \"totalApprovedBudget\": \"\",\n    \"revisedProjectCost\": \"\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/projects",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"projects"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/users/signup",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"officialName\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"officialPhone\": \"+91-9876543210\",\n  \"officialDesignation\": \"Engineer\",\n  \"officialDepartment\": \"PWD\",\n  \"password\": \"secure123\",\n  \"role\": 2\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/users/signup",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"users",
+						"signup"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/users/1",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"officialName\": \"John Doe Updated\",\n  \"officialPhone\": \"+91-9876543211\",\n  \"status\": 0\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/users/1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"users",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/users/1",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/users",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"users"
+					],
+					"query": [
+						{
+							"key": "department",
+							"value": "PWD",
+							"disabled": true
+						},
+						{
+							"key": "role",
+							"value": "2",
+							"disabled": true
+						},
+						{
+							"key": "status",
+							"value": "1",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/stats/project-status",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/stats/project-status",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"stats",
+						"project-status"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://localhost:3000/api/stats/project-status/:id",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/stats/project-status/3",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"stats",
+						"project-status",
+						"3"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/stats/department-count",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/stats/department-count",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"stats",
+						"department-count"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/stats/status-distribution",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/stats/status-distribution",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"stats",
+						"status-distribution"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "endpoint",
+			"value": "http://localhost:3000/",
+			"type": "default"
+		}
+	]
+}

@@ -9,7 +9,6 @@ const fs = require("fs");
 
 const axios = require("axios");
 
-
 dotenv.config();
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -1280,6 +1279,71 @@ app.put("/api/entities/:id", async (req, res) => {
   }
 });
 
+app.get("/api/entities", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [rows] = await connection.execute(
+      `SELECT id, entity_name, entity_type, status FROM entity`
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No entities found",
+      });
+    }
+
+    res.json({
+      success: true,
+      data: rows,
+    });
+  } catch (error) {
+    console.error("Error fetching all entities:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching entities",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+
+app.delete("/api/entities/:id", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const entityId = req.params.id;
+
+    const [result] = await connection.execute(
+      `DELETE FROM entity WHERE id = ?`,
+      [entityId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Entity not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Entity deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting entity:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error deleting entity",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+
 //User API
 app.post("/api/users", async (req, res) => {
   const connection = await pool.getConnection();
@@ -2350,7 +2414,6 @@ app.post("/api/projects/:projectId/issues", async (req, res) => {
   }
 });
 
-
 app.put("/api/issues/:id", async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -2445,7 +2508,6 @@ app.put("/api/issues/:id", async (req, res) => {
     connection.release();
   }
 });
-
 
 app.get("/api/issues/:id", async (req, res) => {
   const connection = await pool.getConnection();
@@ -2553,147 +2615,6 @@ app.get("/api/issues", async (req, res) => {
   }
 });
 
-
-
-// app.post("/generate-pdf", async (req, res) => {
-//   const data = req.body;
-
-//   try {
-//     const doc = new pdfkit();
-//     const pdfPath = `/tmp/project_report_${Date.now()}.pdf`;
-//     const writeStream = fs.createWriteStream(pdfPath);
-//     doc.pipe(writeStream);
-
-//     // Add Header Image
-//     const headerImagePath = "./header.png"; // Path to your header image
-
-//     doc.image("header.png", 0, 0, {
-//       width: doc.page.width,
-//       height: 150,
-//             valign: "top",
-
-//     });
-//     // doc.image(headerImagePath, {
-//     //   fit: [500, 80], // Adjust the size of the image
-//     //   align: "center",
-//     //   valign: "top",
-//     // });
-
-//     // Add a line break after the header image
-//     doc.moveDown(5);
-
-//     // Add Title
-//     // doc.fontSize(20).text("Project Report", { align: "center" });
-//     // doc.moveDown();
-
-//     // Project Details
-//     doc.fontSize(14).text(`Project Name: ${data.projectName}`);
-//     doc.text(`Project Department: ${data.projectDepartment}`);
-//     doc.text(`Project Manager: ${data.concernedProjectManager}`);
-//     doc.text(`Goals & Objectives: ${data.projectGoal || "N/A"}`);
-//     doc.moveDown();
-
-//     // Milestones
-//     doc.fontSize(16).text("Milestones", { underline: true });
-//     doc.moveDown(0.5);
-//     doc.fontSize(12);
-//     data.mileStones.forEach((milestone, index) => {
-//       doc.text(
-//         `${index + 1}. ${milestone.milestoneName || "N/A"} - ${
-//           milestone.milestoneStatus || "N/A"
-//         }`
-//       );
-//       doc.text(`Start Date: ${milestone.milestoneFromDate || "N/A"}`);
-//       doc.text(
-//         `Planned Completion Date: ${milestone.milestoneCompletionDate || "N/A"}`
-//       );
-//       doc.text(
-//         `Actual Completion Date: ${
-//           milestone.milestoneActualCompletionDate || "N/A"
-//         }`
-//       );
-//       doc.text(`Progress: ${milestone.milestoneProgress || "N/A"}%`);
-//       doc.moveDown();
-//     });
-
-//     // Budget Installments
-//     doc.fontSize(16).text("Budget Received in Installments", { underline: true });
-//     doc.moveDown(0.5);
-//     doc.fontSize(12);
-//     data.budgetInstallment.forEach((installment, index) => {
-//       doc.text(
-//         `${index + 1}. Amount: ₹${installment.installmentAmount || "N/A"}, Expenditure: ₹${
-//           installment.installmentExpenditure || "N/A"
-//         }, Received Date: ${installment.amountReceivedDate || "N/A"}, Certificate: ${
-//           installment.utilizationCertificate || "N/A"
-//         }`
-//       );
-//       doc.moveDown();
-//     });
-
-//     // Project Inspections
-//     doc.fontSize(16).text("Project Inspections", { underline: true });
-//     doc.moveDown(0.5);
-//     doc.fontSize(12);
-//     data.projectInspection.forEach((inspection, index) => {
-//       doc.text(
-//         `${index + 1}. Date: ${inspection.inspectionDate || "N/A"}, Official Name: ${
-//           inspection.officialName || "N/A"
-//         }, Instruction: ${inspection.inspectionInstruction || "N/A"}, Report: ${
-//           inspection.inspectionReport || "N/A"
-//         }`
-//       );
-//       doc.moveDown();
-//     });
-
-//     // Essential Tests
-//     doc.fontSize(16).text("Essential Tests", { underline: true });
-//     doc.moveDown(0.5);
-//     doc.fontSize(12);
-//     data.projectEssentialTest.forEach((test, index) => {
-//       doc.text(
-//         `${index + 1}. Test Name: ${test.testName || "N/A"}, Date Collected: ${
-//           test.dateOfSampleCollection || "N/A"
-//         }, Authority: ${test.samplingAuthority || "N/A"}, Lab: ${
-//           test.sampleTestLabName || "N/A"
-//         }, Report: ${test.sampleTestReport || "N/A"}`
-//       );
-//       doc.moveDown();
-//     });
-
-//     // Project Component Gallery
-//     doc.fontSize(16).text("Project Component Gallery", { underline: true });
-//     doc.moveDown(0.5);
-//     doc.fontSize(12);
-//     data.projectGallery.forEach((gallery, index) => {
-//       doc.text(
-//         `${index + 1}. Description: ${
-//           gallery.imageDescription || "N/A"
-//         }, Latitude: ${gallery.latitude || "N/A"}, Longitude: ${
-//           gallery.longitude || "N/A"
-//         }, Uploaded: ${gallery.time || "N/A"}`
-//       );
-//       doc.moveDown();
-//     });
-
-//     // Finalize PDF
-//     doc.end();
-
-//     writeStream.on("finish", () => {
-//       res.download(pdfPath, "Project_Report.pdf", (err) => {
-//         if (err) {
-//           console.error("Error sending file:", err);
-//         }
-//         fs.unlinkSync(pdfPath); // Delete the file after sending
-//       });
-//     });
-//   } catch (error) {
-//     console.error("Error generating PDF:", error);
-//     res.status(500).json({ message: "Failed to generate PDF" });
-//   }
-// });
-
-
 app.post("/generate-pdf", async (req, res) => {
   const data = req.body;
 
@@ -2747,16 +2668,20 @@ app.post("/generate-pdf", async (req, res) => {
     });
 
     // Budget Installments
-    doc.fontSize(16).text("Budget Received in Installments", { underline: true });
+    doc
+      .fontSize(16)
+      .text("Budget Received in Installments", { underline: true });
     doc.moveDown(0.5);
     doc.fontSize(12);
     data.budgetInstallment.forEach((installment, index) => {
       doc.text(
-        `${index + 1}. Amount: ₹${installment.installmentAmount || "N/A"}, Expenditure: ₹${
+        `${index + 1}. Amount: ₹${
+          installment.installmentAmount || "N/A"
+        }, Expenditure: ₹${
           installment.installmentExpenditure || "N/A"
-        }, Received Date: ${installment.amountReceivedDate || "N/A"}, Certificate: ${
-          installment.utilizationCertificate || "N/A"
-        }`
+        }, Received Date: ${
+          installment.amountReceivedDate || "N/A"
+        }, Certificate: ${installment.utilizationCertificate || "N/A"}`
       );
       doc.moveDown();
     });
@@ -2767,11 +2692,11 @@ app.post("/generate-pdf", async (req, res) => {
     doc.fontSize(12);
     data.projectInspection.forEach((inspection, index) => {
       doc.text(
-        `${index + 1}. Date: ${inspection.inspectionDate || "N/A"}, Official Name: ${
-          inspection.officialName || "N/A"
-        }, Instruction: ${inspection.inspectionInstruction || "N/A"}, Report: ${
-          inspection.inspectionReport || "N/A"
-        }`
+        `${index + 1}. Date: ${
+          inspection.inspectionDate || "N/A"
+        }, Official Name: ${inspection.officialName || "N/A"}, Instruction: ${
+          inspection.inspectionInstruction || "N/A"
+        }, Report: ${inspection.inspectionReport || "N/A"}`
       );
       doc.moveDown();
     });

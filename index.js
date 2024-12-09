@@ -242,7 +242,7 @@ app.post("/api/uploadWholeData", async (req, res) => {
           [
             budget.installmentAmount || null,
             budget.installmentExpenditure || null,
-            budget.amountRecievedDate || null,
+            budget.amountReceivedDate || null,
             budget.utilizationCertificate || null,
             projectId,
           ]
@@ -948,7 +948,7 @@ app.get("/api/projects", async (req, res) => {
         const [budgetSummary] = await connection.execute(
           `SELECT 
             MAX(amount_received_date) as lastFundReceivedDate,
-            MAX(utilization_certificate) as utilizationCertificateSubmissionDate
+            MAX(amount_received_date) as utilizationCertificateSubmissionDate
            FROM budget_installments 
            WHERE project_id = ?`,
           [project.id]

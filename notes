@@ -21,4 +21,10 @@ Show project table with limited data and do not show executive agency
 issues of the department in the dashboard (project and issues)
 
 
+project gallery api creartion 
+
+1. project name
+2. project id 
+3. array of images uploads [link, time, desc],
+
 

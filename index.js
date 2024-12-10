@@ -27,7 +27,7 @@ const pool = mysql.createPool({
 });
 
 app.get("/", (req, res) => {
-  res.send("Hello World!");
+  res.send("Hello World!, this is the backend server");
 });
 app.post("/api/uploadWholeData", async (req, res) => {
   const connection = await pool.getConnection();

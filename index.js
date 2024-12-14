@@ -1909,7 +1909,6 @@ app.post("/api/login", async (req, res) => {
   try {
     const { userEmail, userPassword } = req.body;
 
-    // Validate input fields
     if (!userEmail || !userPassword) {
       return res.status(400).json({
         success: false,
@@ -1917,13 +1916,20 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
-    // Fetch user by email
     const [rows] = await connection.execute(
       `SELECT 
-        id, user_name AS userName, user_email AS userEmail, user_password AS hashedPassword,
-        user_role AS userRole, entity_id AS entityId, entity_name AS entityName, status 
-      FROM users 
-      WHERE user_email = ?`,
+        u.id, 
+        u.user_name AS userName, 
+        u.user_email AS userEmail, 
+        u.user_password AS hashedPassword,
+        u.user_role AS userRole, 
+        u.entity_id AS entityId, 
+        e.entity_name AS entityName, 
+        e.entity_type AS entityTypeId, 
+        u.status 
+      FROM users u
+      LEFT JOIN entity e ON u.entity_id = e.id
+      WHERE u.user_email = ?`,
       [userEmail]
     );
 
@@ -1936,7 +1942,6 @@ app.post("/api/login", async (req, res) => {
 
     const user = rows[0];
 
-    // Check if the account is active
     if (user.status !== 1) {
       return res.status(403).json({
         success: false,
@@ -1944,7 +1949,6 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
-    // Compare passwords
     const isPasswordValid = await bcrypt.compare(
       userPassword,
       user.hashedPassword
@@ -1956,7 +1960,6 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
-    // Generate JWT token
     const token = jwt.sign(
       {
         id: user.id,
@@ -1965,9 +1968,10 @@ app.post("/api/login", async (req, res) => {
         userRole: user.userRole,
         entityId: user.entityId,
         entityName: user.entityName,
+        entityTypeId: user.entityTypeId,
       },
       process.env.JWT_SECRET || "your_jwt_secret_key",
-      { expiresIn: "1d" } // Token expires in 1 day
+      { expiresIn: "1d" }
     );
 
     res.json({
@@ -1981,6 +1985,7 @@ app.post("/api/login", async (req, res) => {
         userRole: user.userRole,
         entityId: user.entityId,
         entityName: user.entityName,
+        entityTypeId: user.entityTypeId,
       },
     });
   } catch (error) {

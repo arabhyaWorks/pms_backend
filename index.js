@@ -10,6 +10,8 @@ const fs = require("fs");
 
 const axios = require("axios");
 
+const { fetchProjectGallery } = require("./fetchGallery");
+
 dotenv.config();
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -29,6 +31,7 @@ const pool = mysql.createPool({
 app.get("/", (req, res) => {
   res.send("Hello World!, this is the backend server");
 });
+
 app.post("/api/uploadWholeData", async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -2721,6 +2724,116 @@ app.put("/api/gallery/:id", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error updating gallery entry",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+app.get("/api/gallery/filter", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { departmentId, executingAgencyId } = req.query;
+
+    let query = `
+      SELECT id AS projectId, project_name AS projectName 
+      FROM projects 
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (departmentId) {
+      query += " AND department_id = ?";
+      params.push(departmentId);
+    }
+    if (executingAgencyId) {
+      query += " AND executing_agency_id = ?";
+      params.push(executingAgencyId);
+    }
+
+    const [rows] = await connection.execute(query, params);
+
+    res.json({
+      success: true,
+      data: rows,
+    });
+  } catch (error) {
+    console.error("Error fetching projects:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching projects",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+app.get("/api/fetchGallery", async (req, res) => {
+  console.log("Route triggered: /api/projects/gallery");
+
+  try {
+    console.log("Attempting to fetch project gallery...");
+    const data = await fetchProjectGallery(pool);
+    // console.log("Project Gallery Data:", JSON.stringify(data, null, 2)); // Log the fetched data
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("Error in /api/projects/gallery:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+});
+
+app.get("/api/projects/:projectId/gallery", async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { projectId } = req.params;
+
+    const projectQuery = `
+      SELECT id AS projectId, project_name AS projectName 
+      FROM projects 
+      WHERE id = ?
+    `;
+    const galleryQuery = `
+      SELECT 
+        id AS galleryId, 
+        image, 
+        image_description AS imageDescription, 
+        time
+      FROM project_gallery 
+      WHERE project_id = ?
+    `;
+
+    const [[project]] = await connection.execute(projectQuery, [projectId]);
+    const [gallery] = await connection.execute(galleryQuery, [projectId]);
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        projectId: project.projectId,
+        projectName: project.projectName,
+        gallery,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching project details with gallery:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching project details with gallery",
       error: error.message,
     });
   } finally {

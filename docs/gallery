@@ -1,0 +1,30 @@
+Gallery creation
+
+1. Project gallery creation - upload gallery to the project with the id.
+2. Update an existing gallery record by the id.
+3. Return all the gallery records of a particular project
+
+
+
+
+Fetch Gallery 
+
+retuns 
+
+[
+    {
+    projectName,
+    projectId,
+    executiveAgencyId,
+    executiveAgencyName,
+    departmentId,
+    departmentName,
+    galery:[
+        {
+            image,
+            imageDescription,
+            uploadedAt,//timestamp
+        }
+    ]
+}
+]
